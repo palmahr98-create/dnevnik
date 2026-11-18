@@ -1,0 +1,1230 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Дневник трат</title>
+<meta name="description" content="Личный дневник осознанных трат">
+<meta name="theme-color" content="#FBF7F5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#171214" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Траты">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{
+  --bg:#FBF7F5; --surface:#FFFFFF; --surface2:#F6EFF0; --ink:#2B2326; --ink2:#5A4C50; --muted:#7A6C70;
+  --line:#EADFE2; --accent:#B0466B; --accent-ink:#FFFFFF; --accent-soft:#F7E4EB; --bar:#C45E84; --track:#F1E6E9;
+  --danger:#B3261E; --ok:#2E7D4F; --warn:#9A6200;
+  --shadow:0 1px 2px rgba(60,30,40,.05),0 6px 20px rgba(60,30,40,.06);
+  --r:16px;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#171214; --surface:#221B1E; --surface2:#2B2226; --ink:#F3ECEE; --ink2:#D4C6CA; --muted:#A8989D;
+    --line:#3A2F33; --accent:#E88DAD; --accent-ink:#2A1019; --accent-soft:#3B2630; --bar:#E07FA2; --track:#33282C;
+    --danger:#FF8A80; --ok:#7BD3A0; --warn:#F2C46B; --shadow:none;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none}
+button,input,textarea,select{font:inherit;color:inherit}
+[hidden]{display:none!important}
+h1,h2,h3{margin:0;line-height:1.25}
+h2{font-size:19px;font-weight:650}
+h3{font-size:16px;font-weight:650}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:13.5px}
+
+/* layout */
+.top{position:sticky;top:0;z-index:20;background:var(--bg);background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top) + 10px) 16px 10px}
+.top-in{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.brand{font-weight:700;font-size:18px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px;white-space:nowrap}
+@media (max-width:380px){.brand{font-size:16px}.sync{font-size:12px;padding:6px 10px}}
+.brand img{width:26px;height:26px;border-radius:7px}
+.tabs-desk{display:none;gap:4px;margin-left:16px}
+.sync{margin-left:auto;display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--ink2);cursor:pointer;max-width:56vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sync .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.sync[data-state=ok] .dot{background:var(--ok)}
+.sync[data-state=syncing] .dot{background:var(--accent);animation:pulse 1s infinite}
+.sync[data-state=offline] .dot,.sync[data-state=pending] .dot{background:var(--warn)}
+.sync[data-state=error] .dot{background:var(--danger)}
+@keyframes pulse{50%{opacity:.3}}
+main{max-width:1100px;margin:0 auto;padding:16px 16px calc(96px + env(safe-area-inset-bottom))}
+.view{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.view.wide{max-width:1100px}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;background:var(--surface);background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:none;padding:6px 0;font-size:11.5px;color:var(--muted);cursor:pointer;border-radius:12px}
+.tab svg{width:24px;height:24px}
+.tab[aria-current=page]{color:var(--accent)}
+.tabs-desk .tab{flex-direction:row;font-size:14.5px;padding:7px 12px;gap:6px}
+.tabs-desk .tab svg{width:18px;height:18px}
+.tabs-desk .tab[aria-current=page]{background:var(--accent-soft)}
+@media (min-width:900px){
+  .tabbar{display:none}
+  .tabs-desk{display:flex}
+  main{padding-bottom:40px}
+}
+
+/* cards & forms */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
+.card > * + *{margin-top:12px}
+.hint{font-size:13.5px;color:var(--muted)}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;color:var(--ink2)}
+label.f .opt{font-weight:400;color:var(--muted);font-size:12.5px}
+input[type=text],input[type=search],input[type=password],input[type=date],input:not([type]),textarea,select{width:100%;font-size:16px;border:1px solid var(--line);background:var(--surface2);border-radius:12px;padding:11px 12px;outline:none;font-weight:400;color:var(--ink);-webkit-appearance:none;appearance:none}
+input[type=date]{min-height:46px}
+textarea{resize:vertical;min-height:46px}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);background:var(--surface)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:11px 16px;font-weight:600;font-size:15px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.big{width:100%;padding:14px;font-size:16px}
+.btn.danger{color:var(--danger)}
+.btn.link{border:0;background:none;padding:4px 0;color:var(--accent);font-weight:600}
+.btn:disabled{opacity:.55}
+.btn.rec{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{border:1px solid var(--line);background:var(--surface2);border-radius:999px;padding:7px 12px;font-size:14px;cursor:pointer;color:var(--ink2)}
+.chip[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chips.small .chip{padding:5px 10px;font-size:13px}
+fieldset{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+legend{font-size:14px;font-weight:600;color:var(--ink2);padding:0;margin-bottom:8px}
+.form-head{display:flex;align-items:center;justify-content:space-between}
+.notice{background:var(--accent-soft);border-radius:12px;padding:11px 14px;font-size:14.5px;border:0;text-align:left;cursor:pointer;color:var(--ink)}
+.notice b{color:var(--accent)}
+.voice textarea{min-height:110px}
+
+/* list */
+.toolbar{display:flex;gap:8px}
+.toolbar select{width:auto;flex:none}
+.day{display:flex;justify-content:space-between;align-items:baseline;margin:10px 4px 6px;font-size:14px;color:var(--muted)}
+.day b{color:var(--ink2);font-weight:600}
+.entry{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:pointer;color:var(--ink)}
+.e-top{display:flex;justify-content:space-between;gap:10px;font-weight:600}
+.e-amt{white-space:nowrap;font-variant-numeric:tabular-nums}
+.e-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.badge{font-size:12.5px;border-radius:999px;padding:2px 9px;background:var(--surface2);color:var(--ink2);border:1px solid var(--line)}
+.badge.imp{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+.badge.need{border-style:dashed;color:var(--accent)}
+.e-txt{margin-top:6px;font-size:14px;color:var(--ink2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.empty{text-align:center;color:var(--muted);padding:28px 10px}
+
+/* stats */
+.periods{display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.periods::-webkit-scrollbar{display:none}
+.periods .chip{white-space:nowrap}
+.range-label{font-size:14px;color:var(--muted);margin-top:-4px}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.kpi .k-l{font-size:13px;color:var(--muted)}
+.kpi .k-v{font-size:22px;font-weight:700;letter-spacing:-.01em;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi .k-s{font-size:12.5px;color:var(--muted);margin-top:2px}
+.stats-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.stats-grid > *,.view > *{min-width:0}
+@media (min-width:900px){
+  .kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .stats-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .stats-grid .span2{grid-column:1/-1}
+}
+.card-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.card-h .sub{font-size:13px;color:var(--muted)}
+.hb{display:flex;flex-direction:column;gap:9px}
+.hb-row{display:grid;grid-template-columns:minmax(96px,36%) 1fr auto;gap:10px;align-items:center;font-size:14px;cursor:default;padding:2px 0}
+.hb-label{color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hb-track{height:12px;background:var(--track);border-radius:0 4px 4px 0;overflow:hidden}
+.hb-bar{height:100%;background:var(--bar);border-radius:0 4px 4px 0;min-width:2px}
+.hb-val{font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap;text-align:right;font-size:13.5px}
+.hb-row:hover .hb-bar{filter:brightness(1.08)}
+@media (max-width:599px){
+  .hb-row{grid-template-columns:minmax(0,1fr) auto;row-gap:5px}
+  .hb-label{grid-column:1;grid-row:1}
+  .hb-val{grid-column:2;grid-row:1}
+  .hb-track{grid-column:1/-1;grid-row:2}
+}
+.trend svg{display:block;width:100%;height:auto;overflow:visible}
+.trend .gl{stroke:var(--line);stroke-width:1}
+.trend .ax{fill:var(--muted);font-size:11px}
+.trend .bar{fill:var(--bar)}
+.trend .hit{fill:transparent;cursor:default}
+.trend .hit:hover + .bar,.trend g:hover .bar{filter:brightness(1.1)}
+.top5 .t-row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line);font-size:14.5px}
+.top5 .t-row:first-child{border-top:0}
+.top5 .t-sub{font-size:12.5px;color:var(--muted)}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;max-height:520px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:820px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{position:sticky;top:0;background:var(--surface2);font-weight:600;color:var(--ink2);white-space:nowrap}
+td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.insight{font-size:14.5px;color:var(--ink2);background:var(--accent-soft);border-radius:12px;padding:11px 14px}
+.insight b{color:var(--ink)}
+
+/* settings */
+.cat-list{display:flex;flex-direction:column;gap:6px}
+.cat-item{display:flex;align-items:center;gap:8px;padding:6px 6px 6px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface2)}
+.cat-item span{flex:1}
+.icon-btn{border:0;background:none;padding:6px 8px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:14px}
+.ok-line{color:var(--ok);font-weight:600}
+.err{color:var(--danger);font-size:14px}
+.code{font:600 20px/1.4 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.04em;text-align:center;background:var(--surface2);border:1px dashed var(--accent);border-radius:12px;padding:14px;user-select:all;-webkit-user-select:all;word-break:break-all}
+
+/* overlay, toast, tooltip */
+.overlay{position:fixed;inset:0;background:rgba(20,10,14,.45);z-index:50;display:flex;align-items:flex-end;justify-content:center;padding:16px}
+@media (min-width:600px){.overlay{align-items:center}}
+.modal{background:var(--surface);border-radius:20px;max-width:480px;width:100%;padding:20px;max-height:90vh;overflow:auto;display:flex;flex-direction:column;gap:12px;margin-bottom:env(safe-area-inset-bottom)}
+#toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14.5px;opacity:0;pointer-events:none;transition:.25s;z-index:60;max-width:calc(100vw - 32px);text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#tip{position:fixed;z-index:70;pointer-events:none;background:var(--ink);color:var(--bg);font-size:13px;line-height:1.4;padding:8px 10px;border-radius:10px;white-space:pre-line;max-width:260px;opacity:0;transition:opacity .12s}
+#tip.show{opacity:1}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="brand"><img src="icon-192.png" alt="">Дневник трат</div>
+    <nav class="tabs-desk" aria-label="Разделы"></nav>
+    <button class="sync" id="syncBtn" data-state="off" title="Синхронизация"><span class="dot"></span><span id="syncText">Только на устройстве</span></button>
+  </div>
+</header>
+
+<main>
+  <!-- ЗАПИСАТЬ -->
+  <section class="view" id="view-add">
+    <div class="notice" id="installHint" hidden>
+      <b>Установите приложение:</b> в Safari нажмите «Поделиться» (квадрат со стрелкой), затем «На экран «Домой»». Открывайте его с иконки: там данные и хранятся.
+    </div>
+
+    <div class="card voice">
+      <h2>Расскажите о трате</h2>
+      <p class="hint">Нажмите 🎤 на клавиатуре iPhone и наговорите. Например: «Доставка продуктов из Лавки 6783 рубля. Ситуация: не успела заехать после зала. Эмоция до: расстроена. Эмоция после: особо нет. Импульс: я заслужила».</p>
+      <textarea id="voiceText" rows="4" placeholder="Кофе 350, вчера. Ситуация: … Эмоция до: … Импульс: …" autocapitalize="sentences"></textarea>
+      <div class="row">
+        <button type="button" class="btn primary" id="parseBtn">Разобрать в таблицу ↓</button>
+        <button type="button" class="btn" id="micBtn" hidden>🎙 Диктовать</button>
+        <button type="button" class="btn link" id="clearVoice">Очистить</button>
+      </div>
+    </div>
+
+    <button type="button" class="notice" id="pendingAfter" hidden></button>
+
+    <form class="card" id="entryForm" autocomplete="off" novalidate>
+      <div class="form-head">
+        <h2 id="formTitle">Новая трата</h2>
+        <button type="button" class="btn link" id="cancelEdit" hidden>Отмена</button>
+      </div>
+      <div class="grid2">
+        <label class="f">Дата<input type="date" id="f-date" required></label>
+        <label class="f">Сумма, ₽<input type="text" id="f-amount" inputmode="decimal" placeholder="0"></label>
+      </div>
+      <label class="f">Наименование траты<input type="text" id="f-name" placeholder="Доставка продуктов из Лавки" autocapitalize="sentences"></label>
+      <fieldset>
+        <legend>Категория</legend>
+        <div class="chips small" id="catChips"></div>
+      </fieldset>
+      <label class="f">Ситуация (контекст)<textarea id="f-situation" rows="3" placeholder="В какой ситуации и при каких обстоятельствах была сделана трата" autocapitalize="sentences"></textarea></label>
+      <label class="f">Эмоция ДО<textarea id="f-before" rows="2" placeholder="Что чувствовала перед тратой" autocapitalize="sentences"></textarea></label>
+      <div class="chips small" data-emo-for="f-before"></div>
+      <label class="f">Эмоция ПОСЛЕ <span class="opt">можно заполнить позже</span><textarea id="f-after" rows="2" placeholder="Что чувствуешь после" autocapitalize="sentences"></textarea></label>
+      <div class="chips small" data-emo-for="f-after"></div>
+      <fieldset>
+        <legend>Импульс</legend>
+        <div class="chips" id="impulseChips"></div>
+        <input type="text" id="f-impulse-custom" placeholder="Свой вариант">
+      </fieldset>
+      <button type="submit" class="btn primary big" id="saveBtn">Сохранить</button>
+      <button type="button" class="btn danger" id="deleteBtn" hidden>Удалить запись</button>
+    </form>
+  </section>
+
+  <!-- ЖУРНАЛ -->
+  <section class="view" id="view-list" hidden>
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Поиск по записям">
+      <select id="listFilter" aria-label="Фильтр">
+        <option value="all">Все</option>
+        <option value="noafter">Без эмоции ПОСЛЕ</option>
+      </select>
+    </div>
+    <div id="list"></div>
+  </section>
+
+  <!-- АНАЛИТИКА -->
+  <section class="view wide" id="view-stats" hidden>
+    <div class="periods" id="periods"></div>
+    <div class="range-label" id="rangeLabel"></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="insight" id="insight" hidden></div>
+    <div class="stats-grid">
+      <div class="card span2"><div class="card-h"><h3>Итог по категориям</h3><span class="sub" id="catSub"></span></div><div id="byCat"></div></div>
+      <div class="card span2"><div class="card-h"><h3 id="trendTitle">Траты по дням</h3><span class="sub">нажмите на столбик</span></div><div class="trend" id="trend"></div></div>
+      <div class="card"><div class="card-h"><h3>Траты по импульсам</h3></div><div id="byImpulse"></div></div>
+      <div class="card"><div class="card-h"><h3>Самые крупные траты</h3></div><div class="top5" id="top5"></div></div>
+      <div class="card"><div class="card-h"><h3>Эмоции ДО</h3><span class="sub">сколько раз и на какую сумму</span></div><div id="byBefore"></div></div>
+      <div class="card"><div class="card-h"><h3>Эмоции ПОСЛЕ</h3><span class="sub">что осталось после траты</span></div><div id="byAfter"></div></div>
+      <div class="card span2">
+        <div class="card-h"><h3>Таблица за период</h3><button class="btn" id="exportPeriod">Скачать для Excel</button></div>
+        <div id="table"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- НАСТРОЙКИ -->
+  <section class="view" id="view-settings" hidden>
+    <div class="card" id="syncCard"></div>
+    <div class="card">
+      <h2>Категории</h2>
+      <p class="hint">Изменения синхронизируются между устройствами. Переименование меняет категорию и в старых записях.</p>
+      <div class="cat-list" id="catList"></div>
+      <div class="row"><input type="text" id="newCat" placeholder="Новая категория" style="flex:1"><button class="btn" id="addCat">Добавить</button></div>
+    </div>
+    <div class="card">
+      <h2>Данные</h2>
+      <p class="hint">Записи хранятся на этом устройстве. Если синхронизация включена, их зашифрованная копия лежит в вашем закрытом хранилище на GitHub.</p>
+      <div class="row">
+        <button class="btn" id="exportAll">Скачать всё для Excel</button>
+        <button class="btn" id="exportJson">Резервная копия</button>
+        <label class="btn">Загрузить копию<input type="file" id="importJson" accept=".json,application/json" hidden></label>
+      </div>
+      <p class="hint">Резервная копия не зашифрована, поэтому храните её в надёжном месте.</p>
+    </div>
+    <div class="card">
+      <h2>Как наговаривать</h2>
+      <p class="hint">Начните с названия и суммы, а дальше называйте поля словами: <b>«ситуация»</b>, <b>«эмоция до»</b>, <b>«эмоция после»</b>, <b>«импульс»</b>. Дату можно сказать словами: «вчера», «позавчера», «в субботу», «11 января». Если не сказать, будет сегодня. Категория подбирается по названию, но её можно поменять вручную.</p>
+      <p class="hint">Пример: «Такси 640 вчера. Ситуация: опаздывала на встречу. Эмоция до: тревога. Эмоция после: облегчение. Импульс: мне срочно нужно это».</p>
+    </div>
+  </section>
+</main>
+
+<nav class="tabbar" aria-label="Разделы"></nav>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="tip"></div>
+
+<script>
+'use strict';
+/* ================= helpers ================= */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast('Не удалось сохранить на устройстве'); return false; } },
+  del(k) { try { localStorage.removeItem(k); } catch {} },
+};
+const K = { entries: 'sj.entries', settings: 'sj.settings', sync: 'sj.sync', last: 'sj.lastSync', dirty: 'sj.dirty', period: 'sj.period', draft: 'sj.draft' };
+const pad = (n) => String(n).padStart(2, '0');
+const isoDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseISO = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (d, n) => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() + n); return x; };
+const todayD = () => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); };
+const nf0 = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
+const nf2 = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 });
+const money = (n) => (Math.round(n) === n ? nf0 : nf2).format(n) + ' ₽';
+const moneyR = (n) => nf0.format(Math.round(n)) + ' ₽';
+const dLong = (s) => parseISO(s).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' });
+const dShort = (s) => { const d = parseISO(s); return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`; };
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+const plural = (n, a, b, c) => { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? b : c; };
+let toastT;
+function toast(msg, ms = 2600) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), ms); }
+
+/* ================= constants ================= */
+const DEFAULT_CATS = ['Продукты', 'Кафе и рестораны', 'Доставка еды', 'Транспорт и такси', 'Красота и уход', 'Одежда и обувь', 'Здоровье и спорт', 'Дом и быт', 'Развлечения', 'Подарки', 'Подписки и связь', 'Другое'];
+const CAT_KEYS = {
+  'Доставка еды': ['доставк', 'лавк', 'самокат', 'яндекс ед', 'деливери', 'delivery', 'кухня на районе', 'купер', 'сбермаркет'],
+  'Кафе и рестораны': ['кафе', 'кофе', 'капучино', 'латте', 'ресторан', ' бар', 'обед', 'ужин', 'завтрак', 'ланч', 'кофейн', 'пицц', 'суши', 'роллы', 'бургер', 'шаурм', 'макдон', 'вкусно и точка', 'kfc', 'кфс', 'столов', 'выпечк', 'десерт', 'круассан'],
+  'Продукты': ['продукт', 'магазин', 'пятёрочк', 'пятерочк', 'перекрёст', 'перекрест', 'магнит', 'вкусвилл', 'ашан', 'лента', 'азбука', 'дикси', 'супермаркет', 'овощ', 'фрукт', 'молоко', 'хлеб', 'мясо', 'вода'],
+  'Транспорт и такси': ['такси', 'метро', 'автобус', 'бензин', 'заправк', 'парковк', 'каршеринг', 'электричк', 'проезд', 'тройк', 'поезд', 'самолёт', 'самолет', 'авиабилет', 'uber', 'убер', 'ситидрайв', 'делимобил', 'самокат кикшеринг'],
+  'Красота и уход': ['маникюр', 'педикюр', 'ногт', 'стрижк', 'окрашиван', 'парикмахер', 'салон', 'косметик', 'крем ', 'шампун', 'бров', 'ресниц', 'золотое яблоко', 'летуаль', 'лэтуаль', 'уходов', 'духи', 'парфюм', 'эпиляц', 'косметолог'],
+  'Одежда и обувь': ['одежд', 'обув', 'платье', 'кроссовк', 'джинс', 'футболк', 'куртк', 'пальто', 'юбк', 'брюк', 'свитер', 'кофт', 'бельё', 'белье', 'носки', 'сумк', 'туфл', 'ботин', 'сапог'],
+  'Здоровье и спорт': ['аптек', 'лекарств', 'таблетк', 'врач', 'анализ', 'стоматолог', 'зубн', 'клиник', 'спортзал', ' зал', 'фитнес', 'тренир', 'йог', 'пилатес', 'бассейн', 'абонемент', 'массаж', 'витамин', 'психолог', 'терапи'],
+  'Дом и быт': ['хозтовар', 'бытов', 'посуд', 'мебел', 'икеа', 'ikea', 'уборк', 'клининг', 'коммуналк', 'квартплат', 'аренд', 'ремонт', 'стирк', 'химчистк', 'для дома', 'порошок', 'лампочк'],
+  'Подписки и связь': ['подписк', 'интернет', 'связь', 'мобильн', 'за телефон', 'сотов', 'яндекс плюс', 'netflix', 'spotify', 'icloud', 'айклауд', 'кинопоиск', 'okko', 'иви', 'vpn', 'впн', 'телеграм премиум'],
+  'Развлечения': ['кино', 'театр', 'концерт', 'игр', 'музей', 'выставк', 'клуб', 'вечеринк', 'книг', 'боулинг', 'квест', 'караоке', 'билет'],
+  'Подарки': ['подар', 'букет', 'цветы', 'цветов', 'сувенир'],
+};
+const IMPULSES = ['Я заслужила', 'Да похуй', 'Мне срочно нужно это', 'Без этого я хуже', 'Хочу почувствовать контроль', 'Осознанная трата'];
+const IMPULSE_KEYS = [
+  [0, ['заслужил', 'заслуживаю', 'наград', 'побаловать', 'порадовать себя']],
+  [1, ['похуй', 'пофиг', 'плевать', 'похер', 'насрать', 'всё равно', 'все равно', 'да и ладно', 'гулять так гулять']],
+  [2, ['срочно', 'прямо сейчас', 'немедленно', 'очень нужно', 'очень надо', 'нужно это']],
+  [3, ['хуже', 'недостаточно хорош', 'отстану', 'как у всех', 'без этого я']],
+  [4, ['контрол']],
+  [5, ['осознанн', 'без импульса', 'нет импульса', 'импульса нет', 'необходим', 'запланирован', 'по плану', 'нужная покупка', 'обычная']],
+];
+const EMO = [
+  ['Грусть', ['груст', 'печал', 'расстро', 'тоск', 'уныл', 'плак', 'обид']],
+  ['Усталость', ['устал', 'вымота', 'нет сил', 'выгор', 'измота', 'сонн', 'не выспал']],
+  ['Тревога', ['тревог', 'стресс', 'нерв', 'беспоко', 'паник', 'страх', 'боюсь', 'боял']],
+  ['Скука', ['скук', 'скучн', 'нечего делать']],
+  ['Раздражение', ['раздраж', 'злост', 'злюсь', 'злая', 'злил', 'бесит', 'бесил', 'бешен']],
+  ['Вина', ['вина', 'вины', 'винова', 'стыд', 'совест']],
+  ['Одиночество', ['одинок']],
+  ['Радость', ['радост', 'рада', 'радуюсь', 'счаст', 'кайф', 'воодушев', 'восторг', 'весел', 'довольн']],
+  ['Спокойствие, облегчение', ['спокой', 'удовлетвор', 'облегч', 'умиротвор']],
+  ['Сожаление', ['сожале', 'пожалел', 'зря', 'жалко']],
+  ['Ничего особенного', ['ничего', 'особо нет', 'нейтрал', 'никак', 'пусто', 'апат', 'всё равно', 'все равно', 'норм']],
+  ['Голод', ['голод']],
+];
+const EMO_CHIPS = ['грусть', 'усталость', 'тревога', 'скука', 'раздражение', 'вина', 'одиночество', 'радость', 'спокойствие', 'облегчение', 'сожаление', 'ничего особенного'];
+
+/* ================= state ================= */
+let entries = LS.get(K.entries, []);
+let settings = LS.get(K.settings, { categories: DEFAULT_CATS.slice(), updatedAt: 0 });
+let syncCfg = LS.get(K.sync, null);
+let dek = null; // ключ шифрования данных (CryptoKey)
+let editingId = null;
+let selImpulse = '';
+let selCat = '';
+const live = () => entries.filter((e) => !e.deleted);
+function saveLocal(markDirty = true) { LS.set(K.entries, entries); if (markDirty) setDirty(true); }
+function saveSettings(markDirty = true) { LS.set(K.settings, settings); if (markDirty) setDirty(true); }
+function setDirty(v) { if (v) LS.set(K.dirty, 1); else LS.del(K.dirty); }
+
+/* ================= voice text parser ================= */
+const isW = (c) => !!c && /[0-9a-zа-яё]/i.test(c);
+const clean = (s) => (s || '').replace(/^[\s.,;:!?—–\-]+|[\s.,;:—–\-]+$/g, '').replace(/\s{2,}/g, ' ').trim();
+const MARKERS = [
+  ['situation', /ситуаци[яиюей]|контекст|обстоятельств[ао]?/gi],
+  ['before', /эмоци[яиюей]*\s+до(?:\s+(?:покупки|траты))?|до\s+(?:покупки|траты)|перед\s+(?:покупкой|тратой)|чувствовала\s+до/gi],
+  ['after', /эмоци[яиюей]*\s+после(?:\s+(?:покупки|траты))?|после\s+(?:покупки|траты)|чувствовала\s+после/gi],
+  ['impulse', /импульс(?:ом|а)?/gi],
+  ['category', /категори[яиюей]/gi],
+  ['amount', /сумма/gi],
+  ['name', /наименование(?:\s+траты)?|название(?:\s+траты)?/gi],
+  ['date', /дата/gi],
+];
+function findMarkers(text) {
+  const found = [];
+  for (const [field, re] of MARKERS) {
+    re.lastIndex = 0; let m;
+    while ((m = re.exec(text))) {
+      const s = m.index, e = s + m[0].length;
+      if (isW(text[s - 1]) || isW(text[e])) continue;
+      found.push({ field, s, e });
+    }
+  }
+  found.sort((a, b) => a.s - b.s || (b.e - b.s) - (a.e - a.s));
+  const out = []; let last = -1;
+  for (const f of found) { if (f.s < last) continue; out.push(f); last = f.e; }
+  return out;
+}
+const MONTHS = ['январ', 'феврал', 'март', 'апрел', 'ма[йя]', 'июн', 'июл', 'август', 'сентябр', 'октябр', 'ноябр', 'декабр'];
+const WD = [['воскресень', 0], ['понедельник', 1], ['вторник', 2], ['сред', 3], ['четверг', 4], ['пятниц', 5], ['суббот', 6]];
+function extractDate(text, today = todayD()) {
+  const B = '(^|[^0-9a-zа-яё])', E = '(?![0-9a-zа-яё])';
+  const tries = [
+    [new RegExp(B + '(позавчера)' + E, 'i'), () => addDays(today, -2)],
+    [new RegExp(B + '(вчера)' + E, 'i'), () => addDays(today, -1)],
+    [new RegExp(B + '(сегодня)' + E, 'i'), () => today],
+    [new RegExp(B + '(\\d{1,2})\\s+(' + MONTHS.join('|') + ')[а-яё]*(?:\\s+(\\d{4}))?' + E, 'i'), (m) => {
+      const mi = MONTHS.findIndex((p) => new RegExp('^' + p, 'i').test(m[3]));
+      return mkDate(+m[2], mi, m[4] ? +m[4] : null, today);
+    }],
+    [new RegExp('(^|[^\\d.,])(\\d{1,2})[./](\\d{1,2})(?:[./](\\d{2,4}))?(?![\\d])'), (m) => {
+      let y = m[4] ? +m[4] : null; if (y && y < 100) y += 2000;
+      return mkDate(+m[2], +m[3] - 1, y, today);
+    }],
+    [new RegExp(B + '((?:в|во)\\s+(?:прошл[а-я]*\\s+)?(' + WD.map((w) => w[0]).join('|') + ')[а-яё]*)' + E, 'i'), (m) => {
+      const wd = WD.find((w) => m[3].toLowerCase().startsWith(w[0]))[1];
+      let diff = (today.getDay() - wd + 7) % 7; if (/прошл/i.test(m[2]) && diff === 0) diff = 7;
+      return addDays(today, -diff);
+    }],
+  ];
+  for (const [re, fn] of tries) {
+    const m = text.match(re);
+    if (!m) continue;
+    const d = fn(m);
+    if (!d) continue;
+    const rest = text.slice(0, m.index) + m[1] + ' ' + text.slice(m.index + m[0].length);
+    return { date: isoDate(d), rest: rest.replace(/\s{2,}/g, ' ') };
+  }
+  return { date: null, rest: text };
+}
+function mkDate(day, mon, year, today) {
+  if (mon < 0 || mon > 11 || day < 1 || day > 31) return null;
+  let d = new Date(year || today.getFullYear(), mon, day);
+  if (d.getMonth() !== mon) return null;
+  if (!year && d > today) d = new Date(today.getFullYear() - 1, mon, day);
+  return d;
+}
+function extractAmount(text) {
+  const re = /(^|[^\d.,a-zа-яё])(\d{1,3}(?:[   .]\d{3})+|\d+)(?:[.,](\d{1,2}))?(?:\s*(тысяч[аиу]?|тыс\.?)(?![а-яё])|(к|k)(?![а-яёa-z]))?(?:\s*(₽|руб(?:л[ьяей]{0,2})?\.?|р\.?)(?![а-яё]))?/gi;
+  let m, best = null;
+  while ((m = re.exec(text))) {
+    let v = parseFloat(m[2].replace(/[   .]/g, '') + (m[3] ? '.' + m[3] : ''));
+    if (m[4] || m[5]) v *= 1000;
+    const score = (m[6] ? 2 : 0) + (m[4] || m[5] ? 1 : 0);
+    const start = m.index + m[1].length;
+    if (!best || score > best.score) best = { value: v, start, end: m.index + m[0].length, score };
+  }
+  if (!best) {
+    const w = text.match(/(^|[^а-яё])(полторы\s+тысячи|тысяч[ауи]?)(?:\s*(?:рублей|руб\.?|₽))?(?![а-яё])/i);
+    if (w) return { value: /полтор/i.test(w[2]) ? 1500 : 1000, start: w.index + w[1].length, end: w.index + w[0].length };
+    return null;
+  }
+  return best;
+}
+function matchImpulse(t) { const s = t.toLowerCase(); for (const [i, keys] of IMPULSE_KEYS) if (keys.some((k) => s.includes(k))) return IMPULSES[i]; return null; }
+function guessCategory(name, extra = '') {
+  const cats = settings.categories;
+  for (const src of [name, extra]) {
+    const s = ' ' + (src || '').toLowerCase().replace(/ё/g, 'е') + ' ';
+    for (const c of cats) if (s.includes(c.toLowerCase().replace(/ё/g, 'е'))) return c;
+    for (const [cat, keys] of Object.entries(CAT_KEYS)) {
+      if (!cats.includes(cat)) continue;
+      if (keys.some((k) => s.includes(k.replace(/ё/g, 'е')))) return cat;
+    }
+  }
+  return '';
+}
+function matchCategory(t) {
+  const s = t.toLowerCase();
+  return settings.categories.find((c) => c.toLowerCase() === s) || settings.categories.find((c) => s.includes(c.toLowerCase().split(' ')[0])) || guessCategory(t) || '';
+}
+const FILLER = /^(?:я\s+)?(?:потратила|потратил|потрачено|купила|купил|заплатила|заплатил|оплатила|оплатил|трата)(?:\s+(?:на|за))?(?:\s+|$)/i;
+function parseVoice(raw) {
+  const text = (raw || '').replace(/\s+/g, ' ').trim();
+  const res = {};
+  if (!text) return res;
+  const marks = findMarkers(text);
+  const segs = {};
+  const head = text.slice(0, marks.length ? marks[0].s : text.length);
+  marks.forEach((m, i) => {
+    const v = clean(text.slice(m.e, i + 1 < marks.length ? marks[i + 1].s : text.length));
+    if (v) segs[m.field] = segs[m.field] ? segs[m.field] + '. ' + v : v;
+  });
+  let h = head;
+  if (segs.date) { const d = extractDate(segs.date); if (d.date) res.date = d.date; }
+  { const d = extractDate(h); if (d.date) { if (!res.date) res.date = d.date; h = d.rest; } }
+  if (segs.amount) { const a = extractAmount(segs.amount); if (a) res.amount = a.value; }
+  let pre = h, post = '';
+  { const a = extractAmount(h); if (a) { if (res.amount == null) res.amount = a.value; pre = h.slice(0, a.start); post = h.slice(a.end); } }
+  pre = clean(clean(pre).replace(FILLER, ''));
+  post = clean(clean(post).replace(/^(?:на|за)\s+/i, ''));
+  let sitHead = '';
+  if (segs.name) { res.name = segs.name; sitHead = clean(pre + ' ' + post); }
+  else if (pre) { res.name = pre; sitHead = post; }
+  else if (post) {
+    const m = post.match(/^(.*?)(?:[.,;!?]\s*|\s(?=(?:потому что|так как|когда|из-за|чтобы|ведь|а то)\s))(.*)$/i);
+    if (m && clean(m[1])) { res.name = clean(m[1]); sitHead = clean(m[2]); } else res.name = post;
+  }
+  const sit = [sitHead, segs.situation].filter(Boolean).join('. ');
+  if (sit) res.situation = cap(clean(sit));
+  if (res.name) res.name = cap(res.name);
+  if (segs.before) res.before = cap(segs.before);
+  if (segs.after) res.after = cap(segs.after);
+  if (segs.impulse) { res.impulse = matchImpulse(segs.impulse) || cap(segs.impulse); }
+  if (segs.category) res.category = matchCategory(segs.category);
+  if (!res.category) res.category = guessCategory(res.name, res.situation);
+  if (!res.category) delete res.category;
+  return res;
+}
+
+/* ================= emotions for analytics ================= */
+function emoLabels(t) {
+  const s = (t || '').toLowerCase();
+  if (!s.trim()) return [];
+  const out = EMO.filter(([, keys]) => keys.some((k) => s.includes(k))).map(([l]) => l);
+  return out.length ? out : ['Другое'];
+}
+
+/* ================= form ================= */
+const F = { date: '#f-date', amount: '#f-amount', name: '#f-name', situation: '#f-situation', before: '#f-before', after: '#f-after', impulseCustom: '#f-impulse-custom' };
+function parseAmountField(s) {
+  s = String(s || '').replace(/[₽\sрубля.]*$/i, '').replace(/[   ]/g, '');
+  if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+  s = s.replace(',', '.');
+  const v = parseFloat(s);
+  return isFinite(v) ? Math.round(v * 100) / 100 : NaN;
+}
+function renderImpulseChips() {
+  $('#impulseChips').innerHTML = IMPULSES.map((i) => `<button type="button" class="chip" data-imp="${esc(i)}" aria-pressed="${selImpulse === i}">${esc(i === 'Осознанная трата' ? i : '«' + i + '»')}</button>`).join('');
+}
+function renderCatChips() {
+  const cats = settings.categories.slice();
+  if (selCat && !cats.includes(selCat)) cats.push(selCat);
+  $('#catChips').innerHTML = cats.map((c) => `<button type="button" class="chip" data-cat="${esc(c)}" aria-pressed="${selCat === c}">${esc(c)}</button>`).join('');
+}
+function renderEmoChips() {
+  $$('[data-emo-for]').forEach((box) => { box.innerHTML = EMO_CHIPS.map((e) => `<button type="button" class="chip" data-emo="${esc(e)}">${esc(e)}</button>`).join(''); });
+}
+function setImpulse(v) {
+  v = v || '';
+  if (IMPULSES.includes(v)) { selImpulse = v; $(F.impulseCustom).value = ''; }
+  else { selImpulse = ''; $(F.impulseCustom).value = v; }
+  renderImpulseChips();
+}
+function setCategory(v) { selCat = v || ''; renderCatChips(); }
+function fillForm(e) {
+  $(F.date).value = e.date || isoDate(todayD());
+  $(F.amount).value = e.amount != null && e.amount !== '' ? String(e.amount).replace('.', ',') : '';
+  $(F.name).value = e.name || '';
+  $(F.situation).value = e.situation || '';
+  $(F.before).value = e.before || '';
+  $(F.after).value = e.after || '';
+  setImpulse(e.impulse || '');
+  setCategory(e.category || '');
+}
+function readForm() {
+  return {
+    date: $(F.date).value || isoDate(todayD()),
+    amount: parseAmountField($(F.amount).value),
+    name: $(F.name).value.trim(),
+    category: selCat,
+    situation: $(F.situation).value.trim(),
+    before: $(F.before).value.trim(),
+    after: $(F.after).value.trim(),
+    impulse: selImpulse || cap($(F.impulseCustom).value.trim()),
+  };
+}
+function resetForm() {
+  editingId = null;
+  fillForm({});
+  $('#voiceText').value = '';
+  $('#formTitle').textContent = 'Новая трата';
+  $('#cancelEdit').hidden = true; $('#deleteBtn').hidden = true;
+  $('#saveBtn').textContent = 'Сохранить';
+  LS.del(K.draft);
+}
+function startEdit(id) {
+  const e = entries.find((x) => x.id === id);
+  if (!e) return;
+  editingId = id;
+  fillForm(e);
+  $('#voiceText').value = '';
+  $('#formTitle').textContent = 'Редактирование';
+  $('#cancelEdit').hidden = false; $('#deleteBtn').hidden = false;
+  $('#saveBtn').textContent = 'Сохранить изменения';
+  go('add');
+  setTimeout(() => $('#entryForm').scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+}
+let draftT;
+function saveDraft() {
+  clearTimeout(draftT);
+  draftT = setTimeout(() => { if (!editingId) LS.set(K.draft, { voice: $('#voiceText').value, f: readForm(), raw: $(F.amount).value }); }, 400);
+}
+function restoreDraft() {
+  const d = LS.get(K.draft, null);
+  if (!d) { fillForm({}); return; }
+  $('#voiceText').value = d.voice || '';
+  fillForm({ ...d.f, amount: '' });
+  $(F.amount).value = d.raw || '';
+}
+
+/* ================= list ================= */
+let listLimit = 150;
+function renderList() {
+  const q = $('#q').value.trim().toLowerCase();
+  const flt = $('#listFilter').value;
+  let list = live();
+  if (flt === 'noafter') list = list.filter((e) => !e.after);
+  if (q) list = list.filter((e) => [e.name, e.category, e.situation, e.before, e.after, e.impulse, String(e.amount)].join(' ').toLowerCase().includes(q));
+  list.sort((a, b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : (b.createdAt || 0) - (a.createdAt || 0)));
+  const box = $('#list');
+  if (!list.length) { box.innerHTML = `<div class="empty">${entries.length ? 'Ничего не найдено' : 'Пока нет записей. Добавьте первую трату во вкладке «Записать».'}</div>`; return; }
+  const totals = {};
+  for (const e of list) totals[e.date] = (totals[e.date] || 0) + e.amount;
+  let html = '', cur = null;
+  for (const e of list.slice(0, listLimit)) {
+    if (e.date !== cur) { cur = e.date; html += `<div class="day"><b>${esc(cap(dLong(e.date)))}</b><span>${money(totals[e.date])}</span></div>`; }
+    const emo = [e.before && 'до: ' + e.before, e.after && 'после: ' + e.after].filter(Boolean).join(' → ');
+    html += `<button class="entry" data-id="${esc(e.id)}">
+      <div class="e-top"><span>${esc(e.name || 'Без названия')}</span><span class="e-amt">${money(e.amount)}</span></div>
+      <div class="e-meta">${e.category ? `<span class="badge">${esc(e.category)}</span>` : ''}${e.impulse ? `<span class="badge imp">${esc(e.impulse)}</span>` : ''}${!e.after ? '<span class="badge need">+ эмоция после</span>' : ''}</div>
+      ${e.situation ? `<div class="e-txt">${esc(e.situation)}</div>` : ''}
+      ${emo ? `<div class="e-txt">${esc(emo)}</div>` : ''}
+    </button>`;
+  }
+  if (list.length > listLimit) html += `<button class="btn" id="moreBtn" style="width:100%">Показать ещё (${list.length - listLimit})</button>`;
+  box.innerHTML = html;
+}
+function renderPendingAfter() {
+  const from = isoDate(addDays(todayD(), -14));
+  const n = live().filter((e) => !e.after && e.date >= from).length;
+  const el = $('#pendingAfter');
+  el.hidden = !n || !!editingId;
+  el.innerHTML = `<b>${n} ${plural(n, 'трата ждёт', 'траты ждут', 'трат ждут')}</b> «эмоцию после». Нажмите, чтобы дописать.`;
+}
+
+/* ================= analytics ================= */
+const PERIODS = [['week', 'Эта неделя'], ['lastweek', 'Прошлая неделя'], ['month', 'Этот месяц'], ['lastmonth', 'Прошлый месяц'], ['3m', '3 месяца'], ['year', 'Этот год'], ['all', 'Всё время']];
+let period = LS.get(K.period, 'week');
+const mondayOf = (d) => addDays(d, -((d.getDay() + 6) % 7));
+function getRange(p) {
+  const t = todayD();
+  if (p === 'week') { const f = mondayOf(t); return { from: f, to: addDays(f, 6), prev: { from: addDays(f, -7), to: addDays(f, -1) }, prevName: 'прошлая неделя' }; }
+  if (p === 'lastweek') { const f = addDays(mondayOf(t), -7); return { from: f, to: addDays(f, 6), prev: { from: addDays(f, -7), to: addDays(f, -1) }, prevName: 'неделя до неё' }; }
+  if (p === 'month') { const f = new Date(t.getFullYear(), t.getMonth(), 1); return { from: f, to: new Date(t.getFullYear(), t.getMonth() + 1, 0), prev: { from: new Date(t.getFullYear(), t.getMonth() - 1, 1), to: addDays(f, -1) }, prevName: 'прошлый месяц' }; }
+  if (p === 'lastmonth') { const f = new Date(t.getFullYear(), t.getMonth() - 1, 1); return { from: f, to: new Date(t.getFullYear(), t.getMonth(), 0), prev: { from: new Date(t.getFullYear(), t.getMonth() - 2, 1), to: addDays(f, -1) }, prevName: 'месяц до него' }; }
+  if (p === '3m') { const f = addDays(t, -89); return { from: f, to: t, prev: { from: addDays(f, -90), to: addDays(f, -1) }, prevName: 'предыдущие 3 месяца' }; }
+  if (p === 'year') { return { from: new Date(t.getFullYear(), 0, 1), to: new Date(t.getFullYear(), 11, 31), prev: { from: new Date(t.getFullYear() - 1, 0, 1), to: new Date(t.getFullYear() - 1, 11, 31) }, prevName: 'прошлый год' }; }
+  const ds = live().map((e) => e.date).sort();
+  const f = ds.length ? parseISO(ds[0]) : t; const l = ds.length ? parseISO(ds[ds.length - 1]) : t;
+  return { from: f, to: l > t ? l : t, prev: null };
+}
+const inRange = (list, r) => { const a = isoDate(r.from), b = isoDate(r.to); return list.filter((e) => e.date >= a && e.date <= b); };
+const sum = (list) => list.reduce((s, e) => s + (+e.amount || 0), 0);
+const isImpulsive = (e) => e.impulse && e.impulse !== 'Осознанная трата';
+function groupBy(list, keyFn) {
+  const m = new Map();
+  for (const e of list) for (const k of [].concat(keyFn(e))) { const g = m.get(k) || { label: k, sum: 0, n: 0 }; g.sum += +e.amount || 0; g.n++; m.set(k, g); }
+  return [...m.values()];
+}
+function hbars(rows, opt) {
+  if (!rows.length) return `<div class="empty">${opt.empty || 'Нет данных за этот период'}</div>`;
+  const max = Math.max(...rows.map((r) => r[opt.key]));
+  return '<div class="hb">' + rows.map((r) => `<div class="hb-row" data-tip="${esc(opt.tip(r))}"><div class="hb-label" title="${esc(r.label)}">${esc(r.label)}</div><div class="hb-track"><div class="hb-bar" style="width:${max ? Math.max(1.5, (r[opt.key] / max) * 100) : 0}%"></div></div><div class="hb-val">${esc(opt.val(r))}</div></div>`).join('') + '</div>';
+}
+function niceMax(v) { if (v <= 0) return 0; const p = Math.pow(10, Math.floor(Math.log10(v))); const n = v / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p; }
+function compact(n) { if (n >= 1e6) return nf2.format(+(n / 1e6).toFixed(1)) + ' млн'; if (n >= 1000) return nf2.format(+(n / 1000).toFixed(1)) + ' тыс'; return nf0.format(n); }
+function buildBuckets(r, list) {
+  const days = Math.round((r.to - r.from) / 864e5) + 1;
+  const mode = days <= 31 ? 'day' : days <= 190 ? 'week' : 'month';
+  const bs = [];
+  if (mode === 'day') {
+    for (let d = r.from; d <= r.to; d = addDays(d, 1)) { const k = isoDate(d); bs.push({ a: k, b: k, label: String(d.getDate()), tip: cap(d.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long' })), sum: 0, n: 0 }); }
+  } else if (mode === 'week') {
+    for (let d = mondayOf(r.from); d <= r.to; d = addDays(d, 7)) { const e = addDays(d, 6); bs.push({ a: isoDate(d), b: isoDate(e), label: `${pad(d.getDate())}.${pad(d.getMonth() + 1)}`, tip: `Неделя ${pad(d.getDate())}.${pad(d.getMonth() + 1)}–${pad(e.getDate())}.${pad(e.getMonth() + 1)}`, sum: 0, n: 0 }); }
+  } else {
+    for (let d = new Date(r.from.getFullYear(), r.from.getMonth(), 1); d <= r.to; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) { const e = new Date(d.getFullYear(), d.getMonth() + 1, 0); bs.push({ a: isoDate(d), b: isoDate(e), label: d.toLocaleDateString('ru-RU', { month: 'short' }).replace('.', ''), tip: cap(d.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })), sum: 0, n: 0 }); }
+  }
+  for (const e of list) { const b = bs.find((x) => e.date >= x.a && e.date <= x.b); if (b) { b.sum += +e.amount || 0; b.n++; } }
+  return { bs, mode };
+}
+function barPath(x, y, w, h, r) { if (h <= 0) return ''; r = Math.min(r, w / 2, h); return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`; }
+function renderTrend(list, r) {
+  const el = $('#trend');
+  const { bs, mode } = buildBuckets(r, list);
+  $('#trendTitle').textContent = mode === 'day' ? 'Траты по дням' : mode === 'week' ? 'Траты по неделям' : 'Траты по месяцам';
+  const maxV = Math.max(0, ...bs.map((b) => b.sum));
+  if (!maxV) { el.innerHTML = '<div class="empty">Нет трат за этот период</div>'; return; }
+  const W = Math.max(280, el.clientWidth || 600), H = 210, L = 50, R = 6, T = 10, Bm = 24;
+  const pw = W - L - R, ph = H - T - Bm, max = niceMax(maxV);
+  const step = pw / bs.length, bw = Math.max(2, Math.min(40, step - 2));
+  const every = Math.max(1, Math.ceil(bs.length / Math.floor(pw / 34)));
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc($('#trendTitle').textContent)}">`;
+  for (const f of [0, 0.5, 1]) { const y = T + ph - f * ph; s += `<line class="gl" x1="${L}" x2="${W - R}" y1="${y}" y2="${y}"/><text class="ax" x="${L - 8}" y="${y + 4}" text-anchor="end">${f ? compact(max * f) : '0'}</text>`; }
+  bs.forEach((b, i) => {
+    const x = L + i * step + (step - bw) / 2, h = (b.sum / max) * ph, y = T + ph - h;
+    const tip = `${b.tip}\n${money(b.sum)} · ${b.n} ${plural(b.n, 'трата', 'траты', 'трат')}`;
+    s += `<g data-tip="${esc(tip)}"><rect class="hit" x="${L + i * step}" y="${T}" width="${step}" height="${ph + Bm}"/><path class="bar" d="${barPath(x, y, bw, h, 4)}"/></g>`;
+    if (i % every === 0) s += `<text class="ax" x="${L + i * step + step / 2}" y="${H - 6}" text-anchor="middle">${esc(b.label)}</text>`;
+  });
+  el.innerHTML = s + '</svg>';
+}
+function renderStats() {
+  $('#periods').innerHTML = PERIODS.map(([k, l]) => `<button class="chip" data-period="${k}" aria-pressed="${k === period}">${l}</button>`).join('');
+  const r = getRange(period);
+  const all = live();
+  const list = inRange(all, r);
+  const prev = r.prev ? inRange(all, r.prev) : null;
+  const fmtR = (d) => d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: d.getFullYear() !== todayD().getFullYear() ? 'numeric' : undefined });
+  $('#rangeLabel').textContent = `${fmtR(r.from)} — ${fmtR(r.to)}`;
+  const total = sum(list), imp = sum(list.filter(isImpulsive)), prevTotal = prev ? sum(prev) : null;
+  const noAfter = list.filter((e) => !e.after).length;
+  $('#kpis').innerHTML = [
+    ['Потрачено', moneyR(total), prev ? `${r.prevName}: ${moneyR(prevTotal)}` : ''],
+    ['Трат', String(list.length), list.length ? `в среднем ${moneyR(total / list.length)}` : ''],
+    ['Под импульсом', total ? Math.round((imp / total) * 100) + '%' : '—', total ? moneyR(imp) + ' из ' + moneyR(total) : ''],
+    ['Без «эмоции после»', String(noAfter), noAfter ? 'можно дописать в журнале' : 'всё заполнено'],
+  ].map(([l, v, s]) => `<div class="kpi"><div class="k-l">${l}</div><div class="k-v">${v}</div><div class="k-s">${esc(s)}</div></div>`).join('');
+
+  // по категориям (+ сравнение с прошлым периодом)
+  const prevCat = new Map(prev ? groupBy(prev, (e) => e.category || 'Без категории').map((g) => [g.label, g.sum]) : []);
+  const cats = groupBy(list, (e) => e.category || 'Без категории').sort((a, b) => b.sum - a.sum);
+  $('#catSub').textContent = total ? 'всего ' + moneyR(total) : '';
+  $('#byCat').innerHTML = hbars(cats, {
+    key: 'sum', val: (g) => moneyR(g.sum),
+    tip: (g) => `${g.label}\n${money(g.sum)} · ${g.n} ${plural(g.n, 'трата', 'траты', 'трат')} · ${Math.round((g.sum / total) * 100)}% от всех` + (prev ? `\n${cap(r.prevName)}: ${moneyR(prevCat.get(g.label) || 0)}` : ''),
+  });
+  renderTrend(list, r);
+  const imps = groupBy(list, (e) => e.impulse || 'Не указан').sort((a, b) => b.sum - a.sum);
+  $('#byImpulse').innerHTML = hbars(imps, { key: 'sum', val: (g) => moneyR(g.sum), tip: (g) => `${g.label}\n${money(g.sum)} · ${g.n} ${plural(g.n, 'раз', 'раза', 'раз')}` });
+  const bef = groupBy(list.filter((e) => e.before), (e) => emoLabels(e.before)).sort((a, b) => b.n - a.n || b.sum - a.sum);
+  $('#byBefore').innerHTML = hbars(bef, { key: 'n', val: (g) => `${g.n} · ${moneyR(g.sum)}`, tip: (g) => `${g.label} перед тратой\n${g.n} ${plural(g.n, 'раз', 'раза', 'раз')} · ${money(g.sum)}`, empty: 'Эмоции ДО за период не заполнены' });
+  const aft = groupBy(list.filter((e) => e.after), (e) => emoLabels(e.after)).sort((a, b) => b.n - a.n || b.sum - a.sum);
+  $('#byAfter').innerHTML = hbars(aft, { key: 'n', val: (g) => `${g.n} · ${moneyR(g.sum)}`, tip: (g) => `${g.label} после траты\n${g.n} ${plural(g.n, 'раз', 'раза', 'раз')} · ${money(g.sum)}`, empty: 'Эмоции ПОСЛЕ за период не заполнены' });
+  const top = list.slice().sort((a, b) => b.amount - a.amount).slice(0, 5);
+  $('#top5').innerHTML = top.length ? top.map((e) => `<div class="t-row"><div><div>${esc(e.name || 'Без названия')}</div><div class="t-sub">${esc([dShort(e.date), e.category, e.impulse].filter(Boolean).join(' · '))}</div></div><b class="e-amt">${money(e.amount)}</b></div>`).join('') : '<div class="empty">Нет трат за этот период</div>';
+
+  // вывод
+  const ins = [];
+  if (imps.length && imps[0].label !== 'Не указан' && imps[0].label !== 'Осознанная трата') ins.push(`Главный импульс: <b>«${esc(imps[0].label)}»</b>, ${moneyR(imps[0].sum)}`);
+  const topBefore = bef.find((g) => g.label !== 'Другое');
+  if (topBefore) ins.push(`чаще всего перед тратой: <b>${esc(topBefore.label.toLowerCase())}</b>`);
+  if (cats.length) ins.push(`самая затратная категория: <b>${esc(cats[0].label.toLowerCase())}</b>`);
+  $('#insight').hidden = !ins.length;
+  $('#insight').innerHTML = cap(ins.join('; ')) + '.';
+
+  // таблица
+  const rows = list.slice().sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : (a.createdAt || 0) - (b.createdAt || 0)));
+  $('#table').innerHTML = rows.length ? `<div class="table-wrap"><table><thead><tr><th>Дата</th><th>Наименование траты</th><th>Категория</th><th>Сумма</th><th>Ситуация (контекст)</th><th>Эмоция ДО</th><th>Эмоция ПОСЛЕ</th><th>Импульс</th></tr></thead><tbody>${rows.map((e) => `<tr data-id="${esc(e.id)}"><td>${dShort(e.date)}</td><td>${esc(e.name)}</td><td>${esc(e.category)}</td><td class="num">${money(e.amount)}</td><td>${esc(e.situation)}</td><td>${esc(e.before)}</td><td>${esc(e.after)}</td><td>${esc(e.impulse)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Нет трат за этот период</div>';
+}
+
+/* ================= export / import ================= */
+function toCSV(list) {
+  const q = (v) => { v = String(v ?? ''); return /[";\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const head = ['Дата', 'Наименование траты', 'Категория', 'Сумма', 'Ситуация (контекст)', 'Эмоция ДО', 'Эмоция ПОСЛЕ', 'Импульс'];
+  const rows = list.slice().sort((a, b) => (a.date > b.date ? 1 : -1)).map((e) => [dShort(e.date), e.name, e.category, String(e.amount).replace('.', ','), e.situation, e.before, e.after, e.impulse].map(q).join(';'));
+  return '﻿' + [head.join(';'), ...rows].join('\r\n');
+}
+async function saveFile(name, text, type) {
+  const blob = new Blob([text], { type });
+  try {
+    const file = new File([blob], name, { type });
+    if (navigator.canShare && navigator.canShare({ files: [file] }) && matchMedia('(pointer:coarse)').matches) { await navigator.share({ files: [file], title: name }); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+/* ================= crypto ================= */
+const enc = new TextEncoder(), dec = new TextDecoder();
+const rand = (n) => crypto.getRandomValues(new Uint8Array(n));
+function b64(bytes) { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); }
+function unb64(s) { const b = atob(s.replace(/\s/g, '')); const u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+const HAS_GZ = typeof CompressionStream !== 'undefined';
+async function pipe(bytes, stream) { return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer()); }
+const ITER = 310000;
+async function kek(secret, salt, iter) {
+  const base = await crypto.subtle.importKey('raw', enc.encode(secret), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+async function wrapKey(raw, secret) { const salt = rand(16), iv = rand(12); const k = await kek(secret, salt, ITER); return { salt: b64(salt), iter: ITER, iv: b64(iv), ct: b64(new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, k, raw))) }; }
+async function unwrapKey(w, secret) { const k = await kek(secret, unb64(w.salt), w.iter); return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(w.iv) }, k, unb64(w.ct))); }
+const importDek = (raw) => crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']);
+const normCode = (s) => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+function newCode() { const A = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; const r = rand(20); let s = ''; for (let i = 0; i < 20; i++) s += A[r[i] % A.length]; return s.match(/.{4}/g).join('-'); }
+async function encryptData(key, obj) {
+  const iv = rand(12); let data = enc.encode(JSON.stringify(obj));
+  if (HAS_GZ) data = await pipe(data, new CompressionStream('gzip'));
+  return { iv: b64(iv), gz: HAS_GZ, data: b64(new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data))) };
+}
+async function decryptData(key, f) {
+  let data = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(f.iv) }, key, unb64(f.data)));
+  if (f.gz) { if (!HAS_GZ) throw new Error('Обновите iOS/браузер, чтобы открыть данные'); data = await pipe(data, new DecompressionStream('gzip')); }
+  return JSON.parse(dec.decode(data));
+}
+
+/* ================= GitHub storage ================= */
+const GH = 'https://api.github.com';
+const DATA_PATH = 'spend-journal.json';
+class GhError extends Error { constructor(msg, status) { super(msg); this.status = status; } }
+async function gh(cfg, path, opts = {}) {
+  let r;
+  try {
+    r = await fetch(GH + path, { cache: 'no-store', ...opts, headers: { Authorization: 'Bearer ' + cfg.token, Accept: opts.accept || 'application/vnd.github+json', ...(opts.body ? { 'Content-Type': 'application/json' } : {}) } });
+  } catch { const e = new GhError('Нет связи с GitHub', 0); e.network = true; throw e; }
+  if (r.ok) return r;
+  const msgs = { 401: 'Токен не подходит или истёк. Создайте новый (см. инструкцию) и переподключитесь.', 403: 'Нет доступа. Проверьте, что у токена есть право «Contents: Read and write».', 404: 'Хранилище не найдено. Проверьте логин, название репозитория и доступ токена.', 409: 'conflict', 422: 'conflict' };
+  throw new GhError(msgs[r.status] || `GitHub ответил ошибкой ${r.status}`, r.status);
+}
+const repoPath = (cfg) => `/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}`;
+async function ghRepoInfo(cfg) { return (await gh(cfg, repoPath(cfg))).json(); }
+async function ghGetFile(cfg) {
+  let r;
+  try { r = await gh(cfg, `${repoPath(cfg)}/contents/${DATA_PATH}`); }
+  catch (e) { if (e.status === 404) return null; throw e; }
+  const j = await r.json();
+  let text;
+  if (j.content && j.encoding === 'base64') text = dec.decode(unb64(j.content));
+  else text = await (await gh(cfg, `${repoPath(cfg)}/contents/${DATA_PATH}`, { accept: 'application/vnd.github.raw' })).text();
+  return { sha: j.sha, file: JSON.parse(text) };
+}
+async function ghPutFile(cfg, fileObj, sha) {
+  const body = { message: 'Обновление дневника трат', content: btoa(JSON.stringify(fileObj)) };
+  if (sha) body.sha = sha;
+  await gh(cfg, `${repoPath(cfg)}/contents/${DATA_PATH}`, { method: 'PUT', body: JSON.stringify(body) });
+}
+
+/* ================= sync ================= */
+const mergeLists = (a, b) => { const m = new Map(); for (const e of a) m.set(e.id, e); for (const e of b) { const x = m.get(e.id); if (!x || (e.updatedAt || 0) > (x.updatedAt || 0)) m.set(e.id, e); } return [...m.values()]; };
+const sig = (l) => l.map((e) => e.id + ':' + (e.updatedAt || 0)).sort().join('|');
+let syncing = false, syncAgain = false, syncT;
+function scheduleSync(ms = 1500) { clearTimeout(syncT); syncT = setTimeout(sync, ms); }
+async function sync() {
+  if (!syncCfg || !dek) { setStatus(); return; }
+  if (!navigator.onLine) { setStatus('offline'); return; }
+  if (syncing) { syncAgain = true; return; }
+  syncing = true; setStatus('syncing');
+  try {
+    for (let attempt = 0; ; attempt++) {
+      const remote = await ghGetFile(syncCfg);
+      let rEntries = [], rSettings = null, rKeys = null;
+      if (remote) {
+        rKeys = remote.file.keys;
+        let payload;
+        try { payload = await decryptData(dek, remote.file); }
+        catch { throw new GhError('Не получается расшифровать данные в хранилище. Переподключите синхронизацию в настройках.', -1); }
+        rEntries = payload.entries || []; rSettings = payload.settings || null;
+      }
+      const merged = mergeLists(entries, rEntries);
+      let changed = false;
+      if (sig(merged) !== sig(entries)) { entries = merged; saveLocal(false); changed = true; }
+      if (rSettings && (rSettings.updatedAt || 0) > (settings.updatedAt || 0)) { settings = rSettings; saveSettings(false); changed = true; }
+      if (rKeys && (rKeys.updatedAt || 0) > (syncCfg.keys.updatedAt || 0)) { syncCfg.keys = rKeys; LS.set(K.sync, syncCfg); }
+      if (changed) renderAll();
+      const keys = syncCfg.keys;
+      const needPush = !remote || sig(entries) !== sig(rEntries) || (settings.updatedAt || 0) > ((rSettings && rSettings.updatedAt) || 0) || (keys.updatedAt || 0) > ((rKeys && rKeys.updatedAt) || 0);
+      if (needPush) {
+        const snapshot = sig(entries);
+        const file = { app: 'spend-journal', v: 1, keys, ...(await encryptData(dek, { entries, settings })) };
+        try { await ghPutFile(syncCfg, file, remote && remote.sha); }
+        catch (e) { if ((e.status === 409 || e.status === 422) && attempt < 4) continue; throw e; }
+        if (sig(entries) === snapshot) setDirty(false);
+      } else setDirty(false);
+      break;
+    }
+    LS.set(K.last, Date.now());
+    setStatus('ok');
+  } catch (e) {
+    if (e.network) setStatus('offline'); else setStatus('error', e.message);
+  } finally {
+    syncing = false;
+    if (syncAgain) { syncAgain = false; setTimeout(sync, 300); }
+  }
+}
+let lastErr = '';
+function setStatus(state, msg) {
+  const b = $('#syncBtn'), t = $('#syncText');
+  const dirty = LS.get(K.dirty, 0);
+  if (!syncCfg) { state = 'off'; }
+  else if (!state) state = dirty ? 'pending' : 'ok';
+  b.dataset.state = state;
+  lastErr = state === 'error' ? msg : '';
+  const last = LS.get(K.last, 0);
+  const tm = last ? new Date(last).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
+  t.textContent = { off: 'Только на устройстве', syncing: 'Синхронизация…', ok: dirty ? 'Есть неотправленное' : 'Синхронизировано' + (tm ? ' · ' + tm : ''), offline: dirty ? 'Нет сети — сохранено здесь' : 'Нет сети', pending: 'Есть неотправленное', error: 'Ошибка синхронизации' }[state];
+  if (syncCfg && !$('#view-settings').hidden) renderSyncCard();
+}
+
+/* ================= sync setup UI ================= */
+let syncMode = 'connect';
+function field(id, label, type = 'text', extra = '') { return `<label class="f">${label}<input type="${type}" id="${id}" autocomplete="off" autocapitalize="off" spellcheck="false" ${extra}></label>`; }
+function renderSyncCard() {
+  const c = $('#syncCard');
+  if (syncCfg) {
+    const last = LS.get(K.last, 0);
+    c.innerHTML = `<h2>Синхронизация</h2>
+      <p class="ok-line">✓ Включена, данные зашифрованы</p>
+      <p class="hint">Хранилище: ${esc(syncCfg.owner)}/${esc(syncCfg.repo)}${last ? ' · последняя синхронизация ' + esc(new Date(last).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })) : ''}</p>
+      ${lastErr ? `<p class="err">${esc(lastErr)}</p>` : ''}
+      <div class="row"><button class="btn primary" id="syncNow">Синхронизировать сейчас</button></div>
+      <div class="row"><button class="btn" id="changePass">Сменить пароль</button><button class="btn" id="newCodeBtn">Новый код восстановления</button></div>
+      <p class="hint">Забыли пароль? Нажмите «Восстановить»: на этом устройстве можно задать новый пароль, старый не нужен.</p>
+      <div class="row"><button class="btn" id="restoreHere">Восстановить</button><button class="btn danger" id="disconnect">Отключить на этом устройстве</button></div>`;
+    return;
+  }
+  if (syncMode === 'recover') {
+    c.innerHTML = `<h2>Восстановление доступа</h2>
+      <p class="hint">Введите код восстановления, который вы сохранили при первом подключении, и придумайте новый пароль. Данные не пропадут.</p>
+      ${field('s-owner', 'Логин на GitHub')}${field('s-repo', 'Название закрытого репозитория', 'text', 'value="spend-data"')}${field('s-token', 'Токен доступа')}
+      ${field('s-code', 'Код восстановления', 'text', 'placeholder="XXXX-XXXX-XXXX-XXXX-XXXX"')}
+      ${field('s-pass', 'Новый пароль', 'password')}${field('s-pass2', 'Повторите новый пароль', 'password')}
+      <p class="err" id="s-err" hidden></p>
+      <button class="btn primary big" id="s-go">Восстановить</button>
+      <button class="btn link" id="s-mode">← Назад к подключению</button>`;
+  } else {
+    c.innerHTML = `<h2>Синхронизация</h2>
+      <p class="hint">Чтобы телефон и компьютер видели одни и те же записи, подключите закрытое хранилище на GitHub. Данные шифруются вашим паролем ещё на устройстве, поэтому прочитать их не может никто, даже GitHub. Пошаговая инструкция есть в файле «Инструкция».</p>
+      ${field('s-owner', 'Логин на GitHub')}${field('s-repo', 'Название закрытого репозитория', 'text', 'value="spend-data"')}${field('s-token', 'Токен доступа', 'text', 'placeholder="github_pat_…"')}
+      ${field('s-pass', 'Пароль шифрования (минимум 8 символов)', 'password')}${field('s-pass2', 'Повторите пароль (нужно при первом подключении)', 'password')}
+      <p class="err" id="s-err" hidden></p>
+      <button class="btn primary big" id="s-go">Подключить</button>
+      <p class="hint">Забыли пароль? <button class="btn link" id="s-mode">Восстановить</button></p>`;
+  }
+}
+function sErr(msg) { const e = $('#s-err'); if (!e) return toast(msg); e.textContent = msg; e.hidden = !msg; }
+async function doConnect() {
+  const owner = $('#s-owner').value.trim().replace(/^@/, ''), repo = $('#s-repo').value.trim(), token = $('#s-token').value.trim();
+  const pass = $('#s-pass').value, pass2 = $('#s-pass2').value;
+  if (!owner || !repo || !token) return sErr('Заполните логин, название репозитория и токен.');
+  if (!navigator.onLine) return sErr('Для подключения нужен интернет.');
+  const btn = $('#s-go'); btn.disabled = true; btn.textContent = 'Проверяю…'; sErr('');
+  try {
+    const cfg = { owner, repo, token };
+    const info = await ghRepoInfo(cfg);
+    if (!info.private) throw new Error('Этот репозиторий публичный. Сделайте его закрытым (Settings → Change visibility → Private) и попробуйте снова.');
+    const remote = await ghGetFile(cfg);
+    let raw, code = null, keys;
+    if (syncMode === 'recover') {
+      if (!remote) throw new Error('В этом хранилище ещё нет данных, восстанавливать нечего. Вернитесь назад и подключитесь как обычно.');
+      if (pass.length < 8) throw new Error('Новый пароль: минимум 8 символов.');
+      if (pass !== pass2) throw new Error('Пароли не совпадают.');
+      btn.textContent = 'Расшифровываю…';
+      try { raw = await unwrapKey(remote.file.keys.rc, normCode($('#s-code').value)); } catch { throw new Error('Код восстановления не подходит. Проверьте, что ввели его полностью.'); }
+      keys = { ...remote.file.keys, pw: await wrapKey(raw, pass), updatedAt: Date.now() };
+    } else if (remote) {
+      if (!pass) throw new Error('Введите пароль шифрования.');
+      btn.textContent = 'Расшифровываю…';
+      try { raw = await unwrapKey(remote.file.keys.pw, pass); } catch { throw new Error('Пароль не подходит к уже сохранённым данным. Если забыли его, нажмите «Восстановить».'); }
+      keys = remote.file.keys;
+    } else {
+      if (pass.length < 8) throw new Error('Пароль: минимум 8 символов.');
+      if (pass !== pass2) throw new Error('Пароли не совпадают.');
+      btn.textContent = 'Шифрую…';
+      raw = rand(32); code = newCode();
+      keys = { pw: await wrapKey(raw, pass), rc: await wrapKey(raw, normCode(code)), updatedAt: Date.now() };
+    }
+    syncCfg = { owner, repo, token, dek: b64(raw), keys };
+    LS.set(K.sync, syncCfg);
+    dek = await importDek(raw);
+    const wasRecover = syncMode === 'recover';
+    syncMode = 'connect';
+    await sync();
+    renderSyncCard();
+    if (code) showCode(code, true); else toast(wasRecover ? 'Доступ восстановлен. Новый пароль действует на всех устройствах.' : 'Подключено');
+  } catch (e) {
+    sErr(e.message || String(e));
+    btn.disabled = false; btn.textContent = syncMode === 'recover' ? 'Восстановить' : 'Подключить';
+  }
+}
+function modal(html) {
+  const o = document.createElement('div'); o.className = 'overlay';
+  o.innerHTML = `<div class="modal" role="dialog" aria-modal="true">${html}</div>`;
+  document.body.appendChild(o);
+  return { el: o, close: () => o.remove() };
+}
+function showCode(code, first) {
+  const m = modal(`<h2>Код восстановления</h2>
+    <p>${first ? 'Синхронизация включена. ' : ''}Это <b>единственный способ</b> вернуть доступ к данным, если вы забудете пароль. Сохраните код: сделайте скриншот, запишите в Заметки или на бумагу.</p>
+    <div class="code" id="codeTxt">${esc(code)}</div>
+    <div class="row"><button class="btn" id="copyCode">Скопировать</button></div>
+    <button class="btn primary big" id="codeOk">Я сохранила код</button>`);
+  $('#copyCode', m.el).onclick = async () => { try { await navigator.clipboard.writeText(code); toast('Скопировано'); } catch { toast('Выделите код и скопируйте вручную'); } };
+  $('#codeOk', m.el).onclick = m.close;
+}
+function newPassDialog(title, note) {
+  const m = modal(`<h2>${esc(title)}</h2><p class="hint">${esc(note)}</p>
+    ${field('np1', 'Новый пароль (минимум 8 символов)', 'password')}${field('np2', 'Повторите новый пароль', 'password')}
+    <p class="err" id="np-err" hidden></p>
+    <div class="row"><button class="btn primary" id="npOk">Сохранить пароль</button><button class="btn" id="npCancel">Отмена</button></div>`);
+  $('#npCancel', m.el).onclick = m.close;
+  $('#npOk', m.el).onclick = async () => {
+    const a = $('#np1', m.el).value, b = $('#np2', m.el).value, er = $('#np-err', m.el);
+    if (a.length < 8) { er.textContent = 'Минимум 8 символов.'; er.hidden = false; return; }
+    if (a !== b) { er.textContent = 'Пароли не совпадают.'; er.hidden = false; return; }
+    if (!navigator.onLine) { er.textContent = 'Нужен интернет, чтобы сохранить новый пароль в хранилище.'; er.hidden = false; return; }
+    $('#npOk', m.el).disabled = true;
+    syncCfg.keys = { ...syncCfg.keys, pw: await wrapKey(unb64(syncCfg.dek), a), updatedAt: Date.now() };
+    LS.set(K.sync, syncCfg); setDirty(true); m.close();
+    await sync();
+    toast(lastErr ? 'Пароль сохранён на устройстве, отправится при синхронизации' : 'Новый пароль сохранён. На других устройствах переподключаться не нужно.');
+  };
+}
+
+/* ================= categories editor ================= */
+function renderCatList() {
+  $('#catList').innerHTML = settings.categories.map((c, i) => `<div class="cat-item"><span>${esc(c)}</span><button class="icon-btn" data-ren="${i}" aria-label="Переименовать">✎</button><button class="icon-btn" data-del="${i}" aria-label="Удалить">✕</button></div>`).join('');
+}
+function touchSettings() { settings.updatedAt = Date.now(); saveSettings(); renderCatList(); renderCatChips(); scheduleSync(); }
+
+/* ================= navigation ================= */
+const TABS = [
+  ['add', 'Записать', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>'],
+  ['list', 'Журнал', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r=".6" fill="currentColor"/><circle cx="4" cy="12" r=".6" fill="currentColor"/><circle cx="4" cy="18" r=".6" fill="currentColor"/></svg>'],
+  ['stats', 'Аналитика', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>'],
+  ['settings', 'Настройки', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>'],
+];
+let curTab = 'add';
+function go(tab) {
+  curTab = tab;
+  for (const [k] of TABS) $('#view-' + k).hidden = k !== tab;
+  $$('[data-tab]').forEach((b) => b.setAttribute('aria-current', b.dataset.tab === tab ? 'page' : 'false'));
+  if (tab === 'list') renderList();
+  if (tab === 'stats') renderStats();
+  if (tab === 'settings') { renderSyncCard(); renderCatList(); }
+  if (tab === 'add') renderPendingAfter();
+  window.scrollTo(0, 0);
+}
+function renderAll() {
+  renderCatChips();
+  renderPendingAfter();
+  if (curTab === 'list') renderList();
+  if (curTab === 'stats') renderStats();
+  if (curTab === 'settings') renderCatList();
+}
+
+/* ================= tooltip ================= */
+const tip = $('#tip');
+let tipEl = null;
+function showTip(el, x, y) {
+  tipEl = el; tip.textContent = el.getAttribute('data-tip'); tip.classList.add('show');
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let left = x + 14, top = y - h - 12;
+  if (left + w > innerWidth - 8) left = x - w - 14;
+  if (left < 8) left = 8;
+  if (top < 8) top = y + 16;
+  tip.style.left = left + 'px'; tip.style.top = top + 'px';
+}
+function hideTip() { tipEl = null; tip.classList.remove('show'); }
+document.addEventListener('pointermove', (e) => { if (e.pointerType !== 'mouse') return; const el = e.target.closest && e.target.closest('[data-tip]'); if (el) showTip(el, e.clientX, e.clientY); else if (tipEl) hideTip(); });
+document.addEventListener('click', (e) => {
+  const el = e.target.closest && e.target.closest('[data-tip]');
+  if (el && matchMedia('(pointer:coarse)').matches) { if (tipEl === el) hideTip(); else showTip(el, e.clientX, e.clientY); }
+  else if (!el && tipEl) hideTip();
+}, true);
+addEventListener('scroll', () => tipEl && hideTip(), { passive: true });
+
+/* ================= events ================= */
+function bind() {
+  const navHtml = TABS.map(([k, l, i]) => `<button class="tab" data-tab="${k}">${i}<span>${l}</span></button>`).join('');
+  $('.tabbar').innerHTML = navHtml; $('.tabs-desk').innerHTML = navHtml;
+  document.addEventListener('click', async (e) => {
+    const t = e.target.closest('button, [data-id]');
+    if (!t) return;
+    if (t.dataset.tab) return go(t.dataset.tab);
+    if (t.dataset.imp) { setImpulse(selImpulse === t.dataset.imp ? '' : t.dataset.imp); return saveDraft(); }
+    if (t.dataset.cat) { setCategory(selCat === t.dataset.cat ? '' : t.dataset.cat); return saveDraft(); }
+    if (t.dataset.emo) {
+      const ta = $('#' + t.parentElement.dataset.emoFor);
+      const v = ta.value.trim();
+      ta.value = v ? (/[,.]$/.test(v) ? v + ' ' : v + ', ') + t.dataset.emo : cap(t.dataset.emo);
+      return saveDraft();
+    }
+    if (t.dataset.period) { period = t.dataset.period; LS.set(K.period, period); return renderStats(); }
+    if (t.classList.contains('entry') || (t.tagName === 'TR' && t.dataset.id)) return startEdit(t.dataset.id);
+    if (t.dataset.ren != null) {
+      const i = +t.dataset.ren, old = settings.categories[i];
+      const nv = (prompt('Новое название категории', old) || '').trim();
+      if (!nv || nv === old) return;
+      if (settings.categories.includes(nv)) return toast('Такая категория уже есть');
+      settings.categories[i] = nv;
+      const now = Date.now();
+      entries = entries.map((x) => (x.category === old ? { ...x, category: nv, updatedAt: now } : x));
+      saveLocal(); if (selCat === old) selCat = nv;
+      return touchSettings();
+    }
+    if (t.dataset.del != null) {
+      const i = +t.dataset.del, c = settings.categories[i];
+      if (!confirm(`Удалить категорию «${c}»? Старые записи сохранят её название.`)) return;
+      settings.categories.splice(i, 1); return touchSettings();
+    }
+    switch (t.id) {
+      case 'moreBtn': listLimit += 150; return renderList();
+      case 'syncBtn': if (!syncCfg) return go('settings'); if (lastErr) { toast(lastErr, 5000); return go('settings'); } return sync();
+      case 'syncNow': return sync();
+      case 's-go': return doConnect();
+      case 's-mode': syncMode = syncMode === 'recover' ? 'connect' : 'recover'; return renderSyncCard();
+      case 'changePass': return newPassDialog('Сменить пароль', 'Новый пароль будет действовать на всех устройствах. Там, где синхронизация уже подключена, ничего вводить не нужно.');
+      case 'restoreHere': return newPassDialog('Восстановить доступ', 'Это устройство уже подключено, поэтому старый пароль не нужен. Придумайте новый: он понадобится при подключении новых устройств.');
+      case 'newCodeBtn': {
+        if (!confirm('Создать новый код восстановления? Старый перестанет работать.')) return;
+        const code = newCode();
+        syncCfg.keys = { ...syncCfg.keys, rc: await wrapKey(unb64(syncCfg.dek), normCode(code)), updatedAt: Date.now() };
+        LS.set(K.sync, syncCfg); setDirty(true); await sync(); return showCode(code, false);
+      }
+      case 'disconnect':
+        if (!confirm('Отключить синхронизацию на этом устройстве? Записи останутся здесь и в хранилище.')) return;
+        syncCfg = null; dek = null; LS.del(K.sync); setStatus(); return renderSyncCard();
+      case 'addCat': {
+        const v = $('#newCat').value.trim(); if (!v) return;
+        if (settings.categories.includes(v)) return toast('Такая категория уже есть');
+        settings.categories.push(v); $('#newCat').value = ''; return touchSettings();
+      }
+      case 'exportAll': return saveFile(`траты-${isoDate(todayD())}.csv`, toCSV(live()), 'text/csv;charset=utf-8');
+      case 'exportPeriod': { const r = getRange(period); return saveFile(`траты-${isoDate(r.from)}—${isoDate(r.to)}.csv`, toCSV(inRange(live(), r)), 'text/csv;charset=utf-8'); }
+      case 'exportJson': return saveFile(`дневник-трат-копия-${isoDate(todayD())}.json`, JSON.stringify({ app: 'spend-journal', exportedAt: new Date().toISOString(), entries, settings }, null, 1), 'application/json');
+      case 'parseBtn': {
+        const res = parseVoice($('#voiceText').value);
+        if (!Object.keys(res).length) return toast('Сначала наговорите или напишите трату');
+        const cur = readForm();
+        fillForm({ ...cur, amount: $(F.amount).value ? cur.amount : '', ...res });
+        if (res.amount == null && !$(F.amount).value) toast('Сумма не найдена. Впишите её вручную.');
+        else toast('Готово. Проверьте поля и сохраните.');
+        saveDraft();
+        return $('#entryForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      case 'clearVoice': $('#voiceText').value = ''; return saveDraft();
+      case 'cancelEdit': resetForm(); renderPendingAfter(); return go('list');
+      case 'deleteBtn': {
+        if (!editingId || !confirm('Удалить эту запись?')) return;
+        const i = entries.findIndex((x) => x.id === editingId);
+        if (i >= 0) entries[i] = { id: editingId, deleted: true, updatedAt: Date.now() };
+        saveLocal(); resetForm(); toast('Запись удалена'); scheduleSync(); renderAll(); return go('list');
+      }
+      case 'pendingAfter': $('#listFilter').value = 'noafter'; return go('list');
+    }
+  });
+  $('#entryForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const v = readForm();
+    if (!(v.amount > 0)) { toast('Укажите сумму'); return $(F.amount).focus(); }
+    if (!v.name) { toast('Укажите наименование траты'); return $(F.name).focus(); }
+    const now = Date.now(), wasEdit = !!editingId;
+    if (wasEdit) { const i = entries.findIndex((x) => x.id === editingId); entries[i] = { ...entries[i], ...v, updatedAt: now }; }
+    else entries.push({ id: uid(), ...v, createdAt: now, updatedAt: now });
+    saveLocal(); resetForm(); renderAll(); scheduleSync(800);
+    toast(wasEdit ? 'Изменения сохранены' : 'Записано ✓');
+    if (wasEdit) go('list'); else window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  $('#entryForm').addEventListener('input', (e) => { if (e.target.id === 'f-impulse-custom' && e.target.value) { selImpulse = ''; renderImpulseChips(); } saveDraft(); });
+  $('#voiceText').addEventListener('input', saveDraft);
+  $('#q').addEventListener('input', () => { listLimit = 150; renderList(); });
+  $('#listFilter').addEventListener('change', renderList);
+  $('#newCat').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#addCat').click(); } });
+  $('#importJson').addEventListener('change', async (e) => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    try {
+      const j = JSON.parse(await f.text());
+      if (!Array.isArray(j.entries)) throw 0;
+      const before = live().length;
+      entries = mergeLists(entries, j.entries);
+      if (j.settings && (j.settings.updatedAt || 0) > (settings.updatedAt || 0)) { settings = j.settings; saveSettings(); }
+      saveLocal(); renderAll(); scheduleSync(300);
+      toast(`Загружено. Новых записей: ${live().length - before}`);
+    } catch { toast('Это не похоже на резервную копию дневника'); }
+  });
+  let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (curTab === 'stats') renderStats(); }, 200); });
+  addEventListener('online', () => sync());
+  addEventListener('offline', () => setStatus('offline'));
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - LS.get(K.last, 0) > 20000) sync(); });
+  setInterval(() => { if (document.visibilityState === 'visible') sync(); }, 180000);
+
+  // Диктовка через браузер (если поддерживается). Основной способ — 🎤 на клавиатуре iPhone.
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SR) {
+    const mb = $('#micBtn'); mb.hidden = false; let rec = null;
+    mb.onclick = () => {
+      if (rec) { rec.stop(); return; }
+      try {
+        rec = new SR(); rec.lang = 'ru-RU'; rec.continuous = true; rec.interimResults = true;
+        const ta = $('#voiceText'); const base = ta.value.trim() ? ta.value.trim() + ' ' : '';
+        rec.onresult = (ev) => { let s = ''; for (let i = 0; i < ev.results.length; i++) s += ev.results[i][0].transcript; ta.value = base + s; saveDraft(); };
+        rec.onerror = (ev) => toast(ev.error === 'no-speech' ? 'Речь не распознана' : 'Не получилось. Используйте 🎤 на клавиатуре.', 3500);
+        rec.onend = () => { rec = null; mb.textContent = '🎙 Диктовать'; mb.classList.remove('rec'); };
+        rec.start(); mb.textContent = '■ Остановить'; mb.classList.add('rec');
+      } catch { rec = null; toast('Используйте 🎤 на клавиатуре'); }
+    };
+  }
+}
+
+/* ================= init ================= */
+async function init() {
+  bind();
+  renderEmoChips(); renderImpulseChips(); renderCatChips();
+  restoreDraft();
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  $('#installHint').hidden = !(ios && !standalone);
+  go('add');
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  if (syncCfg) { try { dek = await importDek(unb64(syncCfg.dek)); } catch { dek = null; } }
+  setStatus();
+  sync();
+}
+init();
+</script>
+</body>
+</html>
