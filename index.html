@@ -164,6 +164,7 @@ legend{font-size:14px;font-weight:800;color:var(--ink2);padding:0;margin-bottom:
 .kpi .k-l{font-size:13px;font-weight:800;text-transform:lowercase;display:flex;align-items:center;gap:6px}
 .kpi .k-l::before{content:"";width:15px;height:15px;flex:none;background:currentColor;-webkit-mask:var(--flower) center/contain no-repeat;mask:var(--flower) center/contain no-repeat}
 .kpi .k-v{font:600 21px/1.2 var(--display);letter-spacing:-.02em;margin-top:6px;font-variant-numeric:tabular-nums}
+.kpi .k-v.long{font-size:16px;line-height:1.3}
 .kpi .k-s{font-size:12.5px;font-weight:700;margin-top:3px;opacity:.88}
 .kpi:nth-child(1) .k-s{color:#fff;opacity:.95}
 .stats-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
@@ -191,15 +192,6 @@ legend{font-size:14px;font-weight:800;color:var(--ink2);padding:0;margin-bottom:
   .hb-val{grid-column:2;grid-row:1}
   .hb-track{grid-column:1/-1;grid-row:2}
 }
-.trend svg{display:block;width:100%;height:auto;overflow:visible}
-.trend .gl{stroke:var(--line);stroke-width:1}
-.trend .ax{fill:var(--muted);font-size:11px;font-weight:700;font-family:var(--text)}
-.trend .bar{fill:var(--bar)}
-.trend .hit{fill:transparent;cursor:default}
-.trend g:hover .bar{filter:brightness(1.1)}
-.top5 .t-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:2px dotted var(--line);font-size:14.5px;font-weight:700}
-.top5 .t-row:first-child{border-top:0}
-.top5 .t-sub{font-size:12.5px;color:var(--muted);font-weight:600}
 .table-wrap{overflow-x:auto;border-radius:18px;max-height:520px;background:var(--surface2)}
 table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:820px}
 th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
@@ -248,7 +240,6 @@ tr[data-id]{cursor:pointer}
 
     <div class="card voice">
       <h2>Расскажите о трате</h2>
-      <p class="hint">Нажмите 🎤 на клавиатуре iPhone и наговорите. Например: «Доставка продуктов из Лавки 6783 рубля. Ситуация: не успела заехать после зала. Эмоция до: расстроена. Эмоция после: особо нет. Импульс: я заслужила».</p>
       <textarea id="voiceText" rows="4" placeholder="Кофе 350, вчера. Ситуация: … Эмоция до: … Импульс: …" autocapitalize="sentences"></textarea>
       <div class="row">
         <button type="button" class="btn primary" id="parseBtn">Разобрать в таблицу ↓</button>
@@ -308,9 +299,7 @@ tr[data-id]{cursor:pointer}
     <div class="insight" id="insight" hidden></div>
     <div class="stats-grid">
       <div class="card span2"><div class="card-h"><h3>Итог по категориям</h3><span class="sub" id="catSub"></span></div><div id="byCat"></div></div>
-      <div class="card span2"><div class="card-h"><h3 id="trendTitle">Траты по дням</h3><span class="sub">нажмите на столбик</span></div><div class="trend" id="trend"></div></div>
-      <div class="card"><div class="card-h"><h3>Траты по импульсам</h3></div><div id="byImpulse"></div></div>
-      <div class="card"><div class="card-h"><h3>Самые крупные траты</h3></div><div class="top5" id="top5"></div></div>
+      <div class="card span2"><div class="card-h"><h3>Траты по импульсам</h3></div><div id="byImpulse"></div></div>
       <div class="card"><div class="card-h"><h3>Эмоции ДО</h3><span class="sub">сколько раз и на какую сумму</span></div><div id="byBefore"></div></div>
       <div class="card"><div class="card-h"><h3>Эмоции ПОСЛЕ</h3><span class="sub">что осталось после траты</span></div><div id="byAfter"></div></div>
       <div class="card span2">
@@ -338,11 +327,6 @@ tr[data-id]{cursor:pointer}
         <label class="btn">Загрузить копию<input type="file" id="importJson" accept=".json,application/json" hidden></label>
       </div>
       <p class="hint">Резервная копия не зашифрована, поэтому храните её в надёжном месте.</p>
-    </div>
-    <div class="card">
-      <h2>Как наговаривать</h2>
-      <p class="hint">Начните с названия и суммы, а дальше называйте поля словами: <b>«ситуация»</b>, <b>«эмоция до»</b>, <b>«эмоция после»</b>, <b>«импульс»</b>. Дату можно сказать словами: «вчера», «позавчера», «в субботу», «11 января». Если не сказать, будет сегодня. Категория подбирается по названию, но её можно поменять вручную.</p>
-      <p class="hint">Пример: «Такси 640 вчера. Ситуация: опаздывала на встречу. Эмоция до: тревога. Эмоция после: облегчение. Импульс: мне срочно нужно это».</p>
     </div>
   </section>
 </main>
@@ -395,14 +379,20 @@ const CAT_KEYS = {
   'Развлечения': ['кино', 'театр', 'концерт', 'игр', 'музей', 'выставк', 'клуб', 'вечеринк', 'книг', 'боулинг', 'квест', 'караоке', 'билет'],
   'Подарки': ['подар', 'букет', 'цветы', 'цветов', 'сувенир'],
 };
-const IMPULSES = ['Я заслужила', 'Да похуй', 'Мне срочно нужно это', 'Без этого я хуже', 'Хочу почувствовать контроль', 'Осознанная трата'];
+const IMPULSES = ['Я заслужила', 'Да похуй', 'Мне срочно нужно это', 'Без этого я хуже', 'Хочу почувствовать контроль', 'А что, я не могу себе позволить?', 'Это быстро и удобно', 'Поднять настроение', 'Почувствовать себя в безопасности', 'Начну новую жизнь', 'Неудобно отказать', 'Осознанная трата'];
 const IMPULSE_KEYS = [
-  [0, ['заслужил', 'заслуживаю', 'наград', 'побаловать', 'порадовать себя']],
-  [1, ['похуй', 'пофиг', 'плевать', 'похер', 'насрать', 'всё равно', 'все равно', 'да и ладно', 'гулять так гулять']],
-  [2, ['срочно', 'прямо сейчас', 'немедленно', 'очень нужно', 'очень надо', 'нужно это']],
-  [3, ['хуже', 'недостаточно хорош', 'отстану', 'как у всех', 'без этого я']],
-  [4, ['контрол']],
-  [5, ['осознанн', 'без импульса', 'нет импульса', 'импульса нет', 'необходим', 'запланирован', 'по плану', 'нужная покупка', 'обычная']],
+  ['А что, я не могу себе позволить?', ['не могу себе позволить', 'не могу позволить', 'могу себе позволить', 'позволить себе']],
+  ['Это быстро и удобно', ['быстро и удобно', 'быстрее и удобнее', 'это удобно', 'это быстро']],
+  ['Неудобно отказать', ['неудобно отказать', 'не смогла отказать', 'не могла отказать', 'неловко отказать', 'надавили']],
+  ['Начну новую жизнь', ['новую жизнь', 'новой жизни', 'с понедельника', 'покупка-обещание', 'покупка обещание', 'стану лучше']],
+  ['Почувствовать себя в безопасности', ['безопасн', 'на всякий случай', 'про запас']],
+  ['Поднять настроение', ['настроени', 'взбодрить', 'развеселить', 'заесть']],
+  ['Я заслужила', ['заслужил', 'заслуживаю', 'наград', 'побаловать', 'порадовать себя']],
+  ['Да похуй', ['похуй', 'пофиг', 'плевать', 'похер', 'насрать', 'всё равно', 'все равно', 'да и ладно', 'гулять так гулять']],
+  ['Мне срочно нужно это', ['срочно', 'прямо сейчас', 'немедленно', 'очень нужно', 'очень надо', 'нужно это']],
+  ['Без этого я хуже', ['хуже', 'недостаточно хорош', 'отстану', 'как у всех', 'без этого я']],
+  ['Хочу почувствовать контроль', ['контрол']],
+  ['Осознанная трата', ['осознанн', 'без импульса', 'нет импульса', 'импульса нет', 'необходим', 'запланирован', 'по плану', 'нужная покупка', 'обычная']],
 ];
 const EMO = [
   ['Грусть', ['груст', 'печал', 'расстро', 'тоск', 'уныл', 'плак', 'обид']],
@@ -517,7 +507,7 @@ function extractAmount(text) {
   }
   return best;
 }
-function matchImpulse(t) { const s = t.toLowerCase(); for (const [i, keys] of IMPULSE_KEYS) if (keys.some((k) => s.includes(k))) return IMPULSES[i]; return null; }
+function matchImpulse(t) { const s = t.toLowerCase(); for (const [label, keys] of IMPULSE_KEYS) if (keys.some((k) => s.includes(k))) return label; return null; }
 function guessCategory(name, extra = '') {
   const cats = settings.categories;
   for (const src of [name, extra]) {
@@ -728,43 +718,6 @@ function hbars(rows, opt) {
   const max = Math.max(...rows.map((r) => r[opt.key]));
   return '<div class="hb">' + rows.map((r) => `<div class="hb-row" data-tip="${esc(opt.tip(r))}"><div class="hb-label" title="${esc(r.label)}">${esc(r.label)}</div><div class="hb-track"><div class="hb-bar" style="width:${max ? Math.max(1.5, (r[opt.key] / max) * 100) : 0}%"></div></div><div class="hb-val">${esc(opt.val(r))}</div></div>`).join('') + '</div>';
 }
-function niceMax(v) { if (v <= 0) return 0; const p = Math.pow(10, Math.floor(Math.log10(v))); const n = v / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p; }
-function compact(n) { if (n >= 1e6) return nf2.format(+(n / 1e6).toFixed(1)) + ' млн'; if (n >= 1000) return nf2.format(+(n / 1000).toFixed(1)) + ' тыс'; return nf0.format(n); }
-function buildBuckets(r, list) {
-  const days = Math.round((r.to - r.from) / 864e5) + 1;
-  const mode = days <= 31 ? 'day' : days <= 190 ? 'week' : 'month';
-  const bs = [];
-  if (mode === 'day') {
-    for (let d = r.from; d <= r.to; d = addDays(d, 1)) { const k = isoDate(d); bs.push({ a: k, b: k, label: String(d.getDate()), tip: cap(d.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long' })), sum: 0, n: 0 }); }
-  } else if (mode === 'week') {
-    for (let d = mondayOf(r.from); d <= r.to; d = addDays(d, 7)) { const e = addDays(d, 6); bs.push({ a: isoDate(d), b: isoDate(e), label: `${pad(d.getDate())}.${pad(d.getMonth() + 1)}`, tip: `Неделя ${pad(d.getDate())}.${pad(d.getMonth() + 1)}–${pad(e.getDate())}.${pad(e.getMonth() + 1)}`, sum: 0, n: 0 }); }
-  } else {
-    for (let d = new Date(r.from.getFullYear(), r.from.getMonth(), 1); d <= r.to; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) { const e = new Date(d.getFullYear(), d.getMonth() + 1, 0); bs.push({ a: isoDate(d), b: isoDate(e), label: d.toLocaleDateString('ru-RU', { month: 'short' }).replace('.', ''), tip: cap(d.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })), sum: 0, n: 0 }); }
-  }
-  for (const e of list) { const b = bs.find((x) => e.date >= x.a && e.date <= x.b); if (b) { b.sum += +e.amount || 0; b.n++; } }
-  return { bs, mode };
-}
-function barPath(x, y, w, h, r) { if (h <= 0) return ''; r = Math.min(r, w / 2, h); return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`; }
-function renderTrend(list, r) {
-  const el = $('#trend');
-  const { bs, mode } = buildBuckets(r, list);
-  $('#trendTitle').textContent = mode === 'day' ? 'Траты по дням' : mode === 'week' ? 'Траты по неделям' : 'Траты по месяцам';
-  const maxV = Math.max(0, ...bs.map((b) => b.sum));
-  if (!maxV) { el.innerHTML = '<div class="empty">Нет трат за этот период</div>'; return; }
-  const W = Math.max(280, el.clientWidth || 600), H = 210, L = 50, R = 6, T = 10, Bm = 24;
-  const pw = W - L - R, ph = H - T - Bm, max = niceMax(maxV);
-  const step = pw / bs.length, bw = Math.max(2, Math.min(40, step - 2));
-  const every = Math.max(1, Math.ceil(bs.length / Math.floor(pw / 34)));
-  let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc($('#trendTitle').textContent)}">`;
-  for (const f of [0, 0.5, 1]) { const y = T + ph - f * ph; s += `<line class="gl" x1="${L}" x2="${W - R}" y1="${y}" y2="${y}"/><text class="ax" x="${L - 8}" y="${y + 4}" text-anchor="end">${f ? compact(max * f) : '0'}</text>`; }
-  bs.forEach((b, i) => {
-    const x = L + i * step + (step - bw) / 2, h = (b.sum / max) * ph, y = T + ph - h;
-    const tip = `${b.tip}\n${money(b.sum)} · ${b.n} ${plural(b.n, 'трата', 'траты', 'трат')}`;
-    s += `<g data-tip="${esc(tip)}"><rect class="hit" x="${L + i * step}" y="${T}" width="${step}" height="${ph + Bm}"/><path class="bar" d="${barPath(x, y, bw, h, 4)}"/></g>`;
-    if (i % every === 0) s += `<text class="ax" x="${L + i * step + step / 2}" y="${H - 6}" text-anchor="middle">${esc(b.label)}</text>`;
-  });
-  el.innerHTML = s + '</svg>';
-}
 function renderStats() {
   $('#periods').innerHTML = PERIODS.map(([k, l]) => `<button class="chip" data-period="${k}" aria-pressed="${k === period}">${l}</button>`).join('');
   const r = getRange(period);
@@ -774,13 +727,14 @@ function renderStats() {
   const fmtR = (d) => d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: d.getFullYear() !== todayD().getFullYear() ? 'numeric' : undefined });
   $('#rangeLabel').textContent = `${fmtR(r.from)} — ${fmtR(r.to)}`;
   const total = sum(list), imp = sum(list.filter(isImpulsive)), prevTotal = prev ? sum(prev) : null;
-  const noAfter = list.filter((e) => !e.after).length;
+  const bef = groupBy(list.filter((e) => e.before), (e) => emoLabels(e.before)).sort((a, b) => b.n - a.n || b.sum - a.sum);
+  const topEmo = bef.find((g) => g.label !== 'Другое');
   $('#kpis').innerHTML = [
     ['Потрачено', moneyR(total), prev ? `${r.prevName}: ${moneyR(prevTotal)}` : ''],
     ['Трат', String(list.length), list.length ? `в среднем ${moneyR(total / list.length)}` : ''],
     ['Под импульсом', total ? Math.round((imp / total) * 100) + '%' : '—', total ? moneyR(imp) + ' из ' + moneyR(total) : ''],
-    ['Без «эмоции после»', String(noAfter), noAfter ? 'можно дописать в журнале' : 'всё заполнено'],
-  ].map(([l, v, s]) => `<div class="kpi"><div class="k-l">${l}</div><div class="k-v">${v}</div><div class="k-s">${esc(s)}</div></div>`).join('');
+    ['Чаще всего трачу, когда', topEmo ? topEmo.label.toLowerCase() : '—', topEmo ? `${topEmo.n} ${plural(topEmo.n, 'раз', 'раза', 'раз')} · ${moneyR(topEmo.sum)}` : 'заполняйте «эмоцию до»'],
+  ].map(([l, v, s]) => `<div class="kpi"><div class="k-l">${l}</div><div class="k-v${v.length > 9 ? ' long' : ''}">${esc(v)}</div><div class="k-s">${esc(s)}</div></div>`).join('');
 
   // по категориям (+ сравнение с прошлым периодом)
   const prevCat = new Map(prev ? groupBy(prev, (e) => e.category || 'Без категории').map((g) => [g.label, g.sum]) : []);
@@ -790,21 +744,15 @@ function renderStats() {
     key: 'sum', val: (g) => moneyR(g.sum),
     tip: (g) => `${g.label}\n${money(g.sum)} · ${g.n} ${plural(g.n, 'трата', 'траты', 'трат')} · ${Math.round((g.sum / total) * 100)}% от всех` + (prev ? `\n${cap(r.prevName)}: ${moneyR(prevCat.get(g.label) || 0)}` : ''),
   });
-  renderTrend(list, r);
   const imps = groupBy(list, (e) => e.impulse || 'Не указан').sort((a, b) => b.sum - a.sum);
   $('#byImpulse').innerHTML = hbars(imps, { key: 'sum', val: (g) => moneyR(g.sum), tip: (g) => `${g.label}\n${money(g.sum)} · ${g.n} ${plural(g.n, 'раз', 'раза', 'раз')}` });
-  const bef = groupBy(list.filter((e) => e.before), (e) => emoLabels(e.before)).sort((a, b) => b.n - a.n || b.sum - a.sum);
   $('#byBefore').innerHTML = hbars(bef, { key: 'n', val: (g) => `${g.n} · ${moneyR(g.sum)}`, tip: (g) => `${g.label} перед тратой\n${g.n} ${plural(g.n, 'раз', 'раза', 'раз')} · ${money(g.sum)}`, empty: 'Эмоции ДО за период не заполнены' });
   const aft = groupBy(list.filter((e) => e.after), (e) => emoLabels(e.after)).sort((a, b) => b.n - a.n || b.sum - a.sum);
   $('#byAfter').innerHTML = hbars(aft, { key: 'n', val: (g) => `${g.n} · ${moneyR(g.sum)}`, tip: (g) => `${g.label} после траты\n${g.n} ${plural(g.n, 'раз', 'раза', 'раз')} · ${money(g.sum)}`, empty: 'Эмоции ПОСЛЕ за период не заполнены' });
-  const top = list.slice().sort((a, b) => b.amount - a.amount).slice(0, 5);
-  $('#top5').innerHTML = top.length ? top.map((e) => `<div class="t-row"><div><div>${esc(e.name || 'Без названия')}</div><div class="t-sub">${esc([dShort(e.date), e.category, e.impulse].filter(Boolean).join(' · '))}</div></div><b class="e-amt">${money(e.amount)}</b></div>`).join('') : '<div class="empty">Нет трат за этот период</div>';
 
   // вывод
   const ins = [];
   if (imps.length && imps[0].label !== 'Не указан' && imps[0].label !== 'Осознанная трата') ins.push(`Главный импульс: <b>«${esc(imps[0].label)}»</b>, ${moneyR(imps[0].sum)}`);
-  const topBefore = bef.find((g) => g.label !== 'Другое');
-  if (topBefore) ins.push(`чаще всего перед тратой: <b>${esc(topBefore.label.toLowerCase())}</b>`);
   if (cats.length) ins.push(`самая затратная категория: <b>${esc(cats[0].label.toLowerCase())}</b>`);
   $('#insight').hidden = !ins.length;
   $('#insight').innerHTML = cap(ins.join('; ')) + '.';
