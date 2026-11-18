@@ -1,7 +1,8 @@
 // Офлайн-работа: приложение хранится в кэше телефона.
 // Обновления подтягиваются в фоне и применяются при следующем открытии.
-const CACHE = 'spend-journal-v1';
-const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
+const CACHE = 'spend-journal-v2';
+const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png',
+  './font-unbounded-cyr.woff2', './font-unbounded-lat.woff2', './font-nunito-cyr.woff2', './font-nunito-lat.woff2'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
